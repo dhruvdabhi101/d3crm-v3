@@ -3,12 +3,13 @@
 import { FormStatus, Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import type { FormSchema } from "@/lib/forms/types";
 import { parseFormSchema } from "@/lib/forms/validate";
 import { createFormKey } from "@/lib/keys";
 import { requireRole } from "@/lib/permissions";
 import { toSlug } from "@/lib/slug";
 
-export type FormActionState = { error?: string; created?: { id: string; slug: string; key: string } };
+export type FormActionState = { error?: string; created?: { id: string; slug: string; key: string; name?: string; schema?: FormSchema; allowedOrigins?: string[] } };
 
 export async function createForm(_state: FormActionState, formData: FormData): Promise<FormActionState> {
   const { organization } = await requireRole(Role.ADMIN);
@@ -51,7 +52,7 @@ export async function createForm(_state: FormActionState, formData: FormData): P
     },
   });
   revalidatePath("/forms");
-  return { created: { id: created.id, slug: created.slug, key: key.key } };
+  return { created: { id: created.id, slug: created.slug, key: key.key, name: created.name, schema, allowedOrigins: created.allowedOrigins } };
 }
 
 export async function updateFormStatus(formData: FormData) {

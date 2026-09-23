@@ -13,7 +13,7 @@ export default async function FormsPage() {
   const forms = await db.form.findMany({ where: { organizationId: organization.id }, include: { _count: { select: { submissions: true } } }, orderBy: { createdAt: "desc" } });
   return (
     <div className="page">
-      <PageHeader eyebrow="Collection points" title="Forms" description="Define what your website can send, then watch every response arrive." action={canAdmin ? <Link className="button button-primary" href="/forms/new"><Plus size={16} />New form</Link> : undefined} />
+      <PageHeader eyebrow="Workspace" title="Forms" description="A home for the forms on your websites." action={canAdmin ? <Link className="button button-primary" href="/forms/new"><Plus size={16} />New form</Link> : undefined} />
       {forms.length ? <div className="card-grid">{forms.map((form) => (
         <Link className="form-card" href={`/forms/${form.id}`} key={form.id}>
           <div className="form-card-top"><span className="form-glyph" aria-hidden><i /><i /><i /></span><StatusPill status={form.status} /></div>

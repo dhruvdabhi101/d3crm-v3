@@ -63,3 +63,14 @@ pnpm typecheck
 pnpm lint
 pnpm build
 ```
+
+## Build forms with your AI agent
+
+1. Open **New form → Build with AI** (or **Start with a prompt** on the overview).
+2. Describe the form and copy the generated prompt into your preferred AI agent.
+3. Paste the agent's JSON response back, choose **Import form**, and review the fields and live preview.
+4. Create the form, then copy the integration prompt from the success screen. It includes the real endpoint, schema, and one-time publishable key so a coding agent can connect your website.
+
+Existing form pages also provide integration prompts and schema JSON. Their prompts use a key placeholder because saved keys cannot be retrieved; provide your saved publishable key to the agent. General agent documentation is available at `/llms.txt`.
+
+AI generation runs in the user's chosen agent. The application validates and imports its JSON; it does not make model API calls or require an AI provider key.

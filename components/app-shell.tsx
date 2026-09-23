@@ -8,16 +8,12 @@ export function AppShell({ children, organizationId, organizations, user }: {
   organizations: { id: string; name: string; role: string }[];
   user: { name: string; email: string };
 }) {
-  return (
-    <div className="app-frame">
-      <aside className="sidebar">
-        <div className="sidebar-top">
-          <Brand />
-          <WorkspaceSwitcher currentId={organizationId} organizations={organizations} />
-        </div>
-        <AppNav name={user.name} email={user.email} />
-      </aside>
-      <main className="main-content">{children}</main>
-    </div>
-  );
+  return <div className="app-frame">
+    <a className="skip-link" href="#main-content">Skip to content</a>
+    <header className="app-toolbar"><div className="toolbar-inner">
+      <div className="workspace-identity"><Brand /><span className="identity-divider" aria-hidden>/</span><WorkspaceSwitcher currentId={organizationId} organizations={organizations} /></div>
+      <AppNav name={user.name} email={user.email} />
+    </div></header>
+    <main id="main-content" className="main-content">{children}</main>
+  </div>;
 }

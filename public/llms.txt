@@ -1,0 +1,22 @@
+# d3CRM — form integration guide for AI agents
+
+Use the form-specific integration prompt from the d3CRM dashboard as the source of truth for the endpoint, schema, allowed origins, and publishable key. Never guess credentials or endpoints.
+
+## Creating form definitions
+Return JSON: {"name":"Contact form","schema":{"version":1,"fields":[{"id":"email","label":"Email address","type":"email","required":true}]}}
+Names are 2–100 characters. Schemas contain 1–30 fields. Each field has a unique id matching ^[a-z][a-z0-9_]{0,49}$, a label of 1–80 characters, type, and a boolean required value.
+Types: text, email, tel, number, textarea, select, checkbox.
+Select fields need 1–50 nonempty options. Optional maxLength is an integer from 1 to 10000.
+Users import this JSON in Forms → New form → Build with AI, review it, and create the form. There is no public form-creation API; do not claim to have created a form by generating JSON.
+
+## Website integration
+POST JSON to the exact endpoint provided by the dashboard, /api/v1/forms/{slug}/submissions.
+Headers: Content-Type: application/json and X-Form-Key: the publishable form key.
+Send field IDs at the top level; do not wrap in data or schema. Numbers should be JSON numbers; checkboxes must be booleans. A required checkbox must be true. Omit blank optional fields. Add an off-screen, non-focusable _gotcha honeypot and send its value, normally empty.
+The form must be Live. Requests from browsers must match the configured origin allowlist when set. The key is publishable and does not grant dashboard access. Keys are only shown on creation/rotation.
+
+## Responses and UX
+201: {ok:true,submission:{id,createdAt}}. 202: accepted.
+422: {error,fields}; fields maps IDs to validation errors.
+401: missing/invalid key. 403: disallowed origin. 404: missing/inactive form or incorrect key. 413: body too large (64 KB limit). 429: rate limited.
+Use accessible labels, field errors, a loading state, duplicate-submit protection, success feedback, and network-error handling. Preserve user input when submission fails. Do not send test leads without user approval.

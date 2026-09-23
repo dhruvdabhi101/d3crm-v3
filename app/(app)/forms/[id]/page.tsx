@@ -1,3 +1,4 @@
+import { AgentKit } from "@/components/agent-kit";
 import { Download, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -32,6 +33,7 @@ export default async function FormDetailPage({ params }: { params: Promise<{ id:
 
   return <div className="page">
     <PageHeader eyebrow="Form details" title={form.name} description={`${form._count.submissions} total submissions · Created ${form.createdAt.toLocaleDateString("en", { dateStyle: "medium" })}`} action={<div className="header-actions"><StatusPill status={form.status} /><a className="button button-secondary" href={`/api/forms/${form.id}/export`}><Download size={15} />Export CSV</a></div>} />
+    <AgentKit name={form.name} endpoint={endpoint} schema={schema} origins={form.allowedOrigins} />
     <div className="detail-grid">
       <section className="panel form-section detail-main">
         <div className="panel-header"><div><p className="eyebrow">Integration</p><h2>Send responses here</h2></div><CopyButton value={snippet} label="Copy code" /></div>
