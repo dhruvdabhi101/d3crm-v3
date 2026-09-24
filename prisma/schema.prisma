@@ -18,6 +18,7 @@ model User {
 }
 
 model Organization {
+  // Normalized name uniqueness is enforced by the 20260924000000 SQL migration.
   id        String               @id @default(cuid())
   name      String
   slug      String               @unique
@@ -28,6 +29,7 @@ model Organization {
 }
 
 model OrganizationMember {
+  // The 20260924000000 SQL migration permits one OWNER per organization.
   id             String       @id @default(cuid())
   role           Role         @default(MEMBER)
   userId         String

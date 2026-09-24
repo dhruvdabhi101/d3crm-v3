@@ -1,4 +1,5 @@
 import { hash } from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -22,19 +23,27 @@ export async function POST(request: Request) {
   const organizationSlug = `${baseSlug}-${crypto.randomUUID().slice(0, 6)}`;
   const passwordHash = await hash(parsed.data.password, 12);
 
-  await db.user.create({
-    data: {
-      name: parsed.data.name,
-      email: parsed.data.email,
-      passwordHash,
-      memberships: {
-        create: {
-          role: "OWNER",
-          organization: { create: { name: parsed.data.organization, slug: organizationSlug } },
+  try {
+    await db.user.create({
+      data: {
+        name: parsed.data.name,
+        email: parsed.data.email,
+        passwordHash,
+        memberships: {
+          create: {
+            role: "OWNER",
+            organization: { create: { name: parsed.data.organization, slug: organizationSlug } },
+          },
         },
       },
-    },
-  });
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      const existingOrganization = await db.$queryRaw<{ id: string }[]>`SELECT id FROM "Organization" WHERE lower(btrim(name)) = lower(${parsed.data.organization}) LIMIT 1`;
+      return NextResponse.json({ error: existingOrganization.length ? "An organization with that name already exists." : "An account with this email already exists." }, { status: 409 });
+    }
+    throw error;
+  }
 
   return NextResponse.json({ ok: true }, { status: 201 });
 }

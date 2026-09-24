@@ -5,7 +5,7 @@ A deliberately small contact-form CRM: one Next.js application, PostgreSQL, Pris
 ## What is included
 
 - Email/password authentication with a default organization created at sign-up
-- Organization memberships with `OWNER`, `ADMIN`, `MEMBER`, and `VIEWER` roles
+- Organization memberships with `OWNER`, `ADMIN`, `MEMBER`, and `VIEWER` roles, plus ownership transfer in Settings
 - JSONB-backed form schemas and strict submission validation
 - Hashed, rotatable publishable form keys and optional browser-origin allowlists
 - Payload limits, a honeypot, per-IP throttling, and CSV formula-injection protection
@@ -54,6 +54,8 @@ The key identifies a form and is safe to embed in a browser, but it is not a sec
 | Admin | Yes | Yes | Yes | No |
 | Member | Yes | No | No | No |
 | Viewer | Yes | No | No | No |
+
+Admins and owners can rename an organization in Settings. Names are unique across organizations, ignoring case and surrounding spaces. Owners can add existing d3CRM users and transfer ownership to an existing member; the previous owner becomes an admin.
 
 ## Checks
 
