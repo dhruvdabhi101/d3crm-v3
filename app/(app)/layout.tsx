@@ -1,6 +1,9 @@
 import { AppShell } from "@/components/app-shell";
 import { getCurrentContext } from "@/lib/permissions";
 import { db } from "@/lib/db";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { organization, user } = await getCurrentContext();

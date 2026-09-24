@@ -24,6 +24,8 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000), create an account, and create a form.
 
+For deployment, set `NEXTAUTH_URL` to the public HTTPS origin (for example, `https://crm.example.com`). The homepage canonical URL, Open Graph image URLs, `robots.txt`, and `sitemap.xml` use this value.
+
 ## Submit from a website
 
 The form detail screen generates the exact endpoint and sample payload. The request shape is:
