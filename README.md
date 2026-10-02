@@ -31,6 +31,8 @@ Open [http://localhost:3000](http://localhost:3000), create an account, and crea
 
 For deployment, set `NEXTAUTH_URL` to the public HTTPS origin (for example, `https://crm.example.com`). The homepage canonical URL, Open Graph image URLs, `robots.txt`, and `sitemap.xml` use this value.
 
+`pnpm build` generates the Prisma client, applies committed database migrations with `prisma migrate deploy`, then builds Next.js. It requires access to the database selected by `DATABASE_URL` and stops if generation or migration fails. Create and commit new migrations with `pnpm db:migrate` when changing `prisma/schema.prisma`; production builds do not create migrations or use `db push`.
+
 ## Submit from a website
 
 The form detail screen generates the exact endpoint and sample payload. The request shape is:
@@ -86,7 +88,7 @@ Only verified workspace owners can open checkout or the portal. Plan changes com
 
 Public requests have byte limits and PostgreSQL-backed atomic throttling, including sign-in, registration, recovery, and submissions. Forwarded IP headers are ignored by default. Only set `TRUSTED_IP_HEADER` to a header your trusted proxy overwrites, and prevent direct access that bypasses the proxy. Without it, traffic shares an IP bucket. Keep edge/WAF protection for volume attacks; database throttling cannot protect the application before a request reaches it.
 
-Deploy behind HTTPS with a strong `NEXTAUTH_SECRET`, run `pnpm db:deploy` before starting the updated application, and configure the delivery schedule. Migrations preserve existing responses and backfill their original form schemas. Database backups, restore drills, error monitoring, email-domain verification, and Stripe account settings are deployment responsibilities; they are not configured by a code checkout. Do not expose the development PostgreSQL container to the internet.
+Deploy behind HTTPS with a strong `NEXTAUTH_SECRET`, run `pnpm build` (which applies database migrations) before starting the updated application, and configure the delivery schedule. Migrations preserve existing responses and backfill their original form schemas. Database backups, restore drills, error monitoring, email-domain verification, and Stripe account settings are deployment responsibilities; they are not configured by a code checkout. Do not expose the development PostgreSQL container to the internet.
 
 ## Local Workflow Verification
 
