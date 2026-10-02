@@ -1,11 +1,12 @@
-import { FormStatus } from "@prisma/client";
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { validateSubmission } from "@/lib/forms/validate";
 import { hashFormKey, hashIp } from "@/lib/keys";
-
-const MAX_BODY_BYTES = 64 * 1024;
-const RATE_LIMIT_PER_MINUTE = 20;
+import { leadEmail, mailJob, processDeliveries } from "@/lib/deliveries";
+import { rateLimit } from "@/lib/rate-limit";
+import { readJson, requestIp, RequestError } from "@/lib/security";
+import { checkQuota } from "@/lib/billing";
 
 function corsHeaders(origin: string | null) {
   return {
@@ -14,6 +15,7 @@ function corsHeaders(origin: string | null) {
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",
+    "Cache-Control": "no-store",
   };
 }
 
@@ -24,56 +26,56 @@ export async function OPTIONS(request: NextRequest) {
 export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const origin = request.headers.get("origin")?.replace(/\/$/, "") ?? null;
   const headers = corsHeaders(origin);
-  const declaredLength = Number(request.headers.get("content-length") ?? 0);
-  if (declaredLength > MAX_BODY_BYTES) return NextResponse.json({ error: "Payload is too large." }, { status: 413, headers });
-
+  try {
+  const ip = requestIp(request.headers);
+  await rateLimit("submission-request", ip, ip === "unknown" ? 600 : 120, 60);
   const rawKey = request.headers.get("x-form-key") ?? request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!rawKey || rawKey.length > 128) return NextResponse.json({ error: "A valid form key is required." }, { status: 401, headers });
 
   const { slug } = await params;
   const form = await db.form.findFirst({
-    where: { slug, keyHash: hashFormKey(rawKey), status: FormStatus.LIVE },
-    select: { id: true, schema: true, allowedOrigins: true },
+    where: { slug, keyHash: hashFormKey(rawKey), status: "LIVE" },
   });
   if (!form) return NextResponse.json({ error: "Form not found or inactive." }, { status: 404, headers });
   if (origin && form.allowedOrigins.length && !form.allowedOrigins.includes(origin)) {
     return NextResponse.json({ error: "This origin is not allowed." }, { status: 403, headers });
   }
 
-  const text = await request.text();
-  if (new TextEncoder().encode(text).byteLength > MAX_BODY_BYTES) return NextResponse.json({ error: "Payload is too large." }, { status: 413, headers });
-  let body: unknown;
-  try {
-    body = JSON.parse(text);
-  } catch {
-    return NextResponse.json({ error: "Submit valid JSON." }, { status: 400, headers });
-  }
+  await rateLimit(`submission-form-${form.id}`, ip, ip === "unknown" ? 60 : 20, 60);
+  await rateLimit("submission-form-total", form.id, 300, 60);
+  const body = await readJson(request);
 
   if (body && typeof body === "object" && !Array.isArray(body) && String((body as Record<string, unknown>)._gotcha ?? "")) {
     return NextResponse.json({ ok: true }, { status: 202, headers });
   }
 
-  const forwarded = request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const ipHash = forwarded ? hashIp(forwarded) : null;
-  if (ipHash) {
-    const recentCount = await db.submission.count({
-      where: { formId: form.id, ipHash, createdAt: { gte: new Date(Date.now() - 60_000) } },
-    });
-    if (recentCount >= RATE_LIMIT_PER_MINUTE) return NextResponse.json({ error: "Too many submissions. Try again shortly." }, { status: 429, headers });
-  }
-
   const validated = validateSubmission(form.schema, body);
   if (!validated.success) return NextResponse.json({ error: "Validation failed.", fields: validated.errors }, { status: 422, headers });
 
-  const submission = await db.submission.create({
+  const { submission, deliveryIds } = await db.$transaction(async tx => {
+  await checkQuota(tx, form.organizationId, "submissions");
+  const submission = await tx.submission.create({
     data: {
       formId: form.id,
       data: validated.data,
+      schemaSnapshot: form.schema as Prisma.InputJsonValue,
       sourceOrigin: origin,
       userAgent: request.headers.get("user-agent")?.slice(0, 500),
-      ipHash,
+      ipHash: hashIp(ip),
     },
     select: { id: true, createdAt: true },
   });
+  const recipients = await tx.organizationMember.findMany({ where: { organizationId: form.organizationId, user: { email: { in: form.notificationEmails }, emailVerifiedAt: { not: null } } }, select: { user: { select: { email: true } } } });
+  const email = leadEmail(form.name, submission.id);
+  const jobs: Prisma.OutboundDeliveryCreateManyInput[] = recipients.map(({ user }) => ({ ...mailJob(user.email, email.subject, email.text, undefined, form.id), submissionId: submission.id }));
+  if (form.webhookUrl && form.webhookSecret) jobs.push({ kind: "WEBHOOK", formId: form.id, submissionId: submission.id, payload: { url: form.webhookUrl, event: { id: submission.id, type: "submission.created", createdAt: submission.createdAt.toISOString(), form: { id: form.id, name: form.name, slug: form.slug }, data: validated.data } } });
+  const created = jobs.length ? await tx.outboundDelivery.createManyAndReturn({ data: jobs, select: { id: true } }) : [];
+  return { submission, deliveryIds: created.map(job => job.id) };
+  });
+  if (deliveryIds.length) after(async () => { await processDeliveries(deliveryIds); });
   return NextResponse.json({ ok: true, submission }, { status: 201, headers });
+  } catch (error) {
+    if (error instanceof RequestError) return NextResponse.json({ error: error.message }, { status: error.status, headers: { ...headers, ...(error.status === 429 ? { "Retry-After": "60" } : {}) } });
+    throw error;
+  }
 }

@@ -1,12 +1,23 @@
 "use client";
 
 import { useActionState } from "react";
-import { addMember, transferOwnership, updateOrganization } from "@/lib/actions/organization";
+import { addMember, inviteMember, removeMember, transferOwnership, updateOrganization } from "@/lib/actions/organization";
+import { Mail, UserMinus } from "lucide-react";
 
 function Result({ error, success }: { error?: string; success?: string }) {
   if (error) return <p className="form-error" role="alert">{error}</p>;
   if (success) return <p className="form-success" role="status">{success}</p>;
   return null;
+}
+
+export function InviteMemberForm() {
+  const [state, action, pending] = useActionState(inviteMember, {});
+  return <form action={action} className="invite-form"><label className="field"><span>Invite by email</span><input name="email" type="email" required maxLength={254} /></label><label className="field"><span>Role</span><select name="role" defaultValue="MEMBER"><option value="MEMBER">Member</option><option value="VIEWER">Viewer</option><option value="ADMIN">Admin</option></select></label><button className="button button-secondary" disabled={pending}><Mail size={15} />{pending ? "Sending…" : "Send invitation"}</button><Result {...state} /></form>;
+}
+
+export function RemoveMemberForm({ members }: { members: { id: string; name: string }[] }) {
+  const [state, action, pending] = useActionState(removeMember, {});
+  return <form action={action} className="invite-form" onSubmit={event => { if (!window.confirm("Remove this member's access to the workspace?")) event.preventDefault(); }}><label className="field"><span>Remove access</span><select name="memberId" required defaultValue=""><option value="" disabled>Choose a member</option>{members.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}</select></label><button className="button button-secondary danger" disabled={pending || !members.length}><UserMinus size={15} />Remove member</button><Result {...state} /></form>;
 }
 
 export function OrganizationNameForm({ name, canAdmin }: { name: string; canAdmin: boolean }) {

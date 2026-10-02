@@ -172,3 +172,44 @@ input:disabled { background: #f4f4ef; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }.button:active, .icon-button:active { transform: none !important; } }
 @media (prefers-reduced-transparency: reduce) { .app-toolbar { background: var(--canvas); backdrop-filter: none; }.builder-footer { background: white; backdrop-filter: none; } }
 @media (prefers-contrast: more) { :root { --line: #b4b7aa; --line-strong: #8a907f; --muted: #515849; --faint: #64695d; }.app-toolbar { background: var(--canvas); backdrop-filter: none; }.nav-item[aria-current="page"] { outline: 1px solid var(--ink); } }
+/* Enquiry management and connection settings. */
+.inbox-filters { display: grid; grid-template-columns: minmax(180px, 2fr) repeat(3, minmax(120px, 1fr)) auto; align-items: end; gap: 12px; margin-bottom: 24px; }
+.lead-summary { display: flex; flex-wrap: wrap; gap: 20px; padding: 0 0 24px; margin: 0 0 24px; border-bottom: 1px solid var(--line); }
+.lead-summary a { display: inline-flex; align-items: center; gap: 8px; font-size: .8rem; color: #355e79; }
+.enquiry-row { text-decoration: none; color: inherit; }
+.enquiry-row:hover { background: #f4f7fa; }
+.enquiry-row > span { min-width: 0; }
+.enquiry-unread > span:first-child { border-left: 3px solid #2563a6; padding-left: 10px; }
+.lead-status { display: block; margin-top: 6px; font-size: .7rem; color: #587182; }
+.lead-status[data-status="WON"] { color: #277347; }
+.lead-status[data-status="SPAM"], .lead-status[data-status="LOST"] { color: #a13a45; }
+.response-text { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 230px; }
+.pagination { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 20px 0; font-size: .8rem; }
+.pagination > span:first-child, .pagination > span:last-child { width: 32px; }
+.enquiry-detail { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 40px; }
+.enquiry-content, .enquiry-sidebar { min-width: 0; }
+.enquiry-sidebar { border-left: 1px solid var(--line); padding-left: 24px; }
+.enquiry-detail h2 { font-size: 1rem; margin: 20px 0; }
+.response-details { margin: 0; }
+.response-details > div { border-bottom: 1px solid var(--line); padding: 18px 0; }
+.response-details dt { color: var(--muted); font-size: .75rem; margin-bottom: 8px; }
+.response-details dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .9rem; line-height: 1.6; }
+.connection-form { display: grid; gap: 18px; padding: 24px; }
+.connection-form fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 12px; min-width: 0; }
+.connection-form legend { font-size: .85rem; margin-bottom: 14px; }
+.connection-form .check-field span { overflow-wrap: anywhere; }
+.connection-form .check-field small { display: block; color: var(--muted); }
+.connection-form .button { justify-self: start; }
+.connection-form .auth-form { margin: 0; }
+.enquiry-detail .connection-form { padding: 0 0 24px; }
+.note-row { border-top: 1px solid var(--line); padding: 16px 0; }
+.note-row p { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .85rem; line-height: 1.6; }
+.note-row small { color: var(--muted); font-size: .7rem; }
+.pending-invitations, .delivery-list { margin: 24px; }
+.pending-invitations > div, .delivery-list > div { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: .8rem; }
+.pending-invitations span, .delivery-list span { min-width: 0; overflow-wrap: anywhere; }
+.pending-invitations small, .delivery-list small { display: block; color: var(--muted); font-size: .7rem; margin-top: 5px; }
+.verification-banner { background: #eef5fb; color: #25567a; padding: 12px 24px; font-size: .8rem; text-align: center; }
+.verification-banner a { color: inherit; text-decoration: underline; margin-left: 8px; }
+@media (max-width: 900px) { .inbox-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } .enquiry-detail { grid-template-columns: minmax(0, 1fr) 240px; gap: 24px; } }
+@media (max-width: 600px) { .inbox-filters, .enquiry-detail { grid-template-columns: minmax(0, 1fr); } .enquiry-sidebar { border-left: 0; border-top: 1px solid var(--line); padding-left: 0; } .response-text { max-width: 100%; } .connection-form { padding: 20px; } }

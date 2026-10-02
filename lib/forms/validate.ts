@@ -14,6 +14,7 @@ export function parseFormSchema(input: unknown): FormSchema {
     if (!value || typeof value !== "object") throw new Error(`Field ${index + 1} is invalid.`);
     const field = value as Partial<FormField>;
     if (typeof field.id !== "string" || !ID_PATTERN.test(field.id)) throw new Error(`Field ${index + 1} needs a valid key.`);
+    if (["constructor", "prototype", "__proto__"].includes(field.id)) throw new Error("Use a different field key.");
     if (ids.has(field.id)) throw new Error(`Field key “${field.id}” is duplicated.`);
     ids.add(field.id);
     if (typeof field.label !== "string" || !field.label.trim() || field.label.length > 80) throw new Error(`Field ${index + 1} needs a label.`);
@@ -28,7 +29,8 @@ export function parseFormSchema(input: unknown): FormSchema {
     };
     if (field.type === "select") {
       if (!Array.isArray(field.options) || field.options.length < 1 || field.options.length > 50) throw new Error(`Select “${field.label}” needs options.`);
-      normalized.options = [...new Set(field.options.map((option) => String(option).trim()).filter(Boolean))];
+      if (field.options.some(option => typeof option !== "string" || option.length > 200)) throw new Error("Options must be text of at most 200 characters.");
+      normalized.options = [...new Set(field.options.map((option) => option.trim()).filter(Boolean))];
       if (!normalized.options.length) throw new Error(`Select “${field.label}” needs options.`);
     }
     if (field.maxLength !== undefined) {
@@ -52,8 +54,8 @@ export function validateSubmission(schemaInput: unknown, input: unknown): Valida
 
   const source = input as Record<string, unknown>;
   const allowed = new Set(schema.fields.map((field) => field.id));
-  const errors: Record<string, string> = {};
-  const data: Record<string, string | number | boolean> = {};
+  const errors: Record<string, string> = Object.create(null);
+  const data: Record<string, string | number | boolean> = Object.create(null);
 
   for (const key of Object.keys(source)) {
     if (key !== "_gotcha" && !allowed.has(key)) errors[key] = "Unknown field.";
@@ -68,12 +70,12 @@ export function validateSubmission(schemaInput: unknown, input: unknown): Valida
       else data[field.id] = raw;
       continue;
     }
-    if (raw === undefined || raw === null || raw === "") {
+    if (raw === undefined || raw === null || (typeof raw === "string" && !raw.trim())) {
       if (field.required) errors[field.id] = "Required.";
       continue;
     }
     if (field.type === "number") {
-      const value = typeof raw === "number" ? raw : Number(raw);
+      const value = typeof raw === "number" ? raw : typeof raw === "string" ? Number(raw) : NaN;
       if (!Number.isFinite(value)) errors[field.id] = "Must be a number.";
       else data[field.id] = value;
       continue;
@@ -89,5 +91,5 @@ export function validateSubmission(schemaInput: unknown, input: unknown): Valida
     else data[field.id] = value;
   }
 
-  return Object.keys(errors).length ? { success: false, errors } : { success: true, data };
+  return Object.keys(errors).length ? { success: false, errors: { ...errors } } : { success: true, data: { ...data } };
 }

@@ -1,4 +1,5 @@
 import { createHash, createHmac, randomBytes } from "node:crypto";
+import { secret } from "./security.ts";
 
 export function createFormKey() {
   const key = `d3f_${randomBytes(24).toString("base64url")}`;
@@ -10,7 +11,7 @@ export function hashFormKey(key: string) {
 }
 
 export function hashIp(ip: string) {
-  return createHmac("sha256", process.env.NEXTAUTH_SECRET ?? "development-only")
+  return createHmac("sha256", secret())
     .update(ip)
     .digest("hex");
 }

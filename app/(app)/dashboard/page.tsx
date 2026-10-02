@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUpRight, Code2, Plus } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Clock, Code2, Inbox, Plus } from "lucide-react";
 import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
@@ -19,6 +19,10 @@ export default async function DashboardPage() {
     db.submission.count({ where: { form: { organizationId: organization.id } } }),
     db.submission.findMany({ where: { form: { organizationId: organization.id } }, include: { form: { select: { id: true, name: true } } }, orderBy: { createdAt: "desc" }, take: 6 }),
   ]);
+  const [unread, due] = await Promise.all([
+    db.submission.count({ where: { form: { organizationId: organization.id }, readAt: null } }),
+    db.submission.count({ where: { form: { organizationId: organization.id }, followUpAt: { lte: new Date() }, status: { in: ["NEW", "CONTACTED", "QUALIFIED"] } } }),
+  ]);
   return <div className="page overview-page">
     <PageHeader eyebrow="Overview" title={`Hello, ${user.name.split(" ")[0]}.`} description="A little space for every conversation." action={canAdmin ? <Link className="button button-primary" href="/forms/new"><Plus size={16} />Create form</Link> : undefined} />
     <section className="stats-grid" aria-label="Workspace statistics">
@@ -26,6 +30,7 @@ export default async function DashboardPage() {
       <Link className="stat-card" href="/forms"><p>Live forms <span className="live-dot" /></p><strong>{liveForms.toLocaleString()}</strong><small>Ready to receive responses</small></Link>
       <Link className="stat-card" href="/forms"><p>All forms <ArrowUpRight size={14} /></p><strong>{forms.toLocaleString()}</strong><small>Across your websites</small></Link>
     </section>
+    <div className="lead-summary"><Link href="/submissions?view=unread"><Inbox size={17} /><strong>{unread}</strong> unread enquiries</Link><Link href="/submissions?view=overdue"><Clock size={17} /><strong>{due}</strong> follow-ups due</Link></div>
     <div className={canAdmin ? "overview-grid" : ""}>
       <section className="panel inbox-panel"><div className="panel-header"><div><h2>Recent responses</h2><p className="panel-description">Your latest conversations, all together.</p></div><Link className="text-link" href="/submissions">View inbox <ArrowUpRight size={14} /></Link></div>
         {recent.length ? <div className="list">{recent.map(submission => <Link className="list-row" href={`/forms/${submission.form.id}#submissions`} key={submission.id}><span className="submission-dot" aria-hidden /><span className="list-main"><strong>{preview(submission.data)}</strong><small>{submission.form.name}</small></span><time>{submission.createdAt.toLocaleDateString("en", { month: "short", day: "numeric" })}</time><ArrowRight className="row-arrow" size={15} /></Link>)}</div> : <EmptyState title="Ready for your first hello." description="When someone fills out your form, their response will appear here." action={canAdmin ? <Link className="text-link" href={forms ? "/forms" : "/forms/new"}>{forms ? "Connect a form" : "Create your first form"} <ArrowRight size={14} /></Link> : undefined} />}
