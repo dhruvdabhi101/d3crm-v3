@@ -13,8 +13,21 @@ import { mailConfigured } from "@/lib/deliveries";
 import { checkQuota } from "@/lib/billing";
 import { rateLimit } from "@/lib/rate-limit";
 import { routingInput, saveRouting } from "@/lib/assignment";
+import { duplicateFormInWorkspace } from "@/lib/forms/duplicate";
 
 export type FormActionState = { error?: string; success?: string; created?: { id: string; slug: string; key: string; name?: string; schema?: FormSchema; allowedOrigins?: string[] } };
+
+export async function duplicateForm(id: string, _state: FormActionState, formData: FormData): Promise<FormActionState> {
+  const { organization, user } = await requireRole(Role.ADMIN);
+  if (!user.emailVerifiedAt) return { error: "Verify your email in Settings before duplicating forms." };
+  let created;
+  try {
+    await rateLimit("create-form", user.id, 50, 86400);
+    created = await db.$transaction(tx => duplicateFormInWorkspace(tx, organization.id, user.id, id, String(formData.get("name") ?? "")));
+  } catch (error) { if (error instanceof RequestError) return { error: error.message }; throw error; }
+  revalidatePath("/forms"); revalidatePath("/activity");
+  return { created };
+}
 
 export async function updateRouting(id: string, _state: FormActionState, formData: FormData): Promise<FormActionState> {
   const { organization, user } = await requireRole(Role.ADMIN);

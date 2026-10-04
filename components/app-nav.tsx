@@ -8,7 +8,7 @@ import { usePathname } from "next/navigation";
 const items = [
   { href: "/dashboard", label: "Overview" },
   { href: "/forms", label: "Forms" },
-  { href: "/submissions", label: "Submissions" },
+  { href: "/submissions", label: "Inbox" },
   { href: "/reports", label: "Reports" },
   { href: "/clients", label: "Clients" },
   { href: "/settings", label: "Settings" },
@@ -20,7 +20,7 @@ export function AppNav({ name, email, canAdmin }: { name: string; email: string;
   return <>
     <nav className="app-nav" aria-label="Primary navigation">
       {navigation.map(({ href, label }) => {
-        const active = pathname === href || pathname.startsWith(`${href}/`);
+        const active = pathname === href || pathname.startsWith(`${href}/`) || (href === "/settings" && pathname === "/templates") || (href === "/submissions" && pathname === "/follow-ups");
         return <Link className="nav-item" aria-current={active ? "page" : undefined} href={href} key={href}>{label}</Link>;
       })}
     </nav>

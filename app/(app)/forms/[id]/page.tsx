@@ -16,6 +16,7 @@ import { mailConfigured } from "@/lib/deliveries";
 import { FormStatusControl } from "@/components/form-status";
 import { historicalColumns } from "@/lib/forms/history";
 import { FormRouting } from "@/components/form-routing";
+import { FormDuplicator } from "@/components/form-duplicator";
 
 function valueLabel(value: unknown) {
   if (typeof value === "boolean") return value ? "Yes" : "No";
@@ -23,7 +24,7 @@ function valueLabel(value: unknown) {
 }
 
 export default async function FormDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { organization, membership } = await getCurrentContext();
+  const { organization, membership, user } = await getCurrentContext();
   const canAdmin = membership.role === Role.OWNER || membership.role === Role.ADMIN;
   const { id } = await params;
   const form = await db.form.findFirst({
@@ -43,6 +44,7 @@ export default async function FormDetailPage({ params }: { params: Promise<{ id:
   return <div className="page">
     <PageHeader eyebrow="Form details" title={form.name} description={`${form._count.submissions} total submissions · Created ${form.createdAt.toLocaleDateString("en", { dateStyle: "medium" })}`} action={<div className="header-actions"><StatusPill status={form.status} />{canAdmin && <Link className="button button-secondary" href={`/forms/${id}/edit`}><Pencil size={15} />Edit form</Link>}<a className="button button-secondary" href={`/api/forms/${form.id}/export`}><Download size={15} />Export CSV</a></div>} />
     {canAdmin && <div className="connect-entry"><Link className="button button-secondary" href={`/forms/${id}/connect`}><Plug size={15} />Connect website</Link></div>}
+    {canAdmin && <FormDuplicator key={id} id={id} name={form.name} verified={Boolean(user.emailVerifiedAt)} />}
     <AgentKit name={form.name} endpoint={endpoint} schema={schema} origins={form.allowedOrigins} />
     <div className="detail-grid">
       <section className="panel form-section detail-main">

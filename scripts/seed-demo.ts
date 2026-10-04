@@ -1,6 +1,7 @@
 import { hash } from "bcryptjs";
 import { db } from "../lib/db.ts";
 import { createFormKey } from "../lib/keys.ts";
+import { primaryContactEmail } from "../lib/forms/contact.ts";
 
 const url = new URL(process.env.DATABASE_URL!);
 if (!["localhost", "127.0.0.1"].includes(url.hostname) || !url.pathname.endsWith("_test")) throw new Error("Demo data requires a local test database.");
@@ -30,5 +31,16 @@ try {
       });
     }
   }
+  const owner = await db.user.findUniqueOrThrow({ where: { email: "owner@example.test" } });
+  const followUpKey = createFormKey();
+  const followUpForm = await db.form.upsert({ where: { slug: "demo-followups" }, update: {}, create: { name: "Studio consultations", slug: "demo-followups", organizationId: org.id, schema, keyPrefix: followUpKey.prefix, keyHash: followUpKey.hash } });
+  if (!await db.submission.count({ where: { formId: followUpForm.id } })) {
+    const day = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`);
+    for (const [index, offset] of [-2, 0, 0, 1, 3, 7, 10].entries()) {
+      const data = { name: ["Avery Brooks", "Morgan Chen", "Riley Singh", "Jamie Parker", "Casey Reed", "Taylor Evans", "Sam Rivera"][index], email: index < 2 ? "studio@example.test" : `consultation${index}@example.test`, message: "We are planning a website project and would like to discuss timing and next steps." };
+      await db.submission.create({ data: { formId: followUpForm.id, data, schemaSnapshot: schema, contactEmail: primaryContactEmail(schema, data), status: index % 3 === 0 ? "QUALIFIED" : "NEW", assigneeId: index % 2 === 0 ? owner.id : null, followUpAt: new Date(day.getTime() + offset * 86400_000) } });
+    }
+  }
+  await db.replyTemplate.upsert({ where: { organizationId_name: { organizationId: org.id, name: "Studio follow-up" } }, update: {}, create: { organizationId: org.id, name: "Studio follow-up", subject: "Next steps for your project", body: "Hi {{name}},\n\nThanks for getting in touch with {{workspace_name}}. Could you share a little more about your project and the timing you have in mind?\n\nBest,\n{{sender_name}}" } });
   console.log("Local demo ready: owner@example.test / DemoPassword2026!");
 } finally { await db.$disconnect(); }

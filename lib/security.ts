@@ -1,5 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { isIP } from "node:net";
+import { RequestError } from "./request-error.ts";
+export { RequestError } from "./request-error.ts";
 
 export function appUrl() {
   if (process.env.NODE_ENV === "production" && !process.env.NEXTAUTH_URL) throw new Error("Configure NEXTAUTH_URL in production.");
@@ -45,11 +47,6 @@ export function webhookSignature(body: string, timestamp: string, key: string) {
 
 export function validPassword(value: string) {
   return value.length >= 8 && Buffer.byteLength(value, "utf8") <= 72;
-}
-
-export class RequestError extends Error {
-  status: number;
-  constructor(message: string, status: number) { super(message); this.status = status; }
 }
 
 export async function readText(request: Request, limit = 64 * 1024) {

@@ -20,6 +20,10 @@ A deliberately small contact-form CRM: one Next.js application, PostgreSQL, Pris
 - Client workspace creation, isolated access, and a cross-client enquiry overview
 - A connection wizard with generated HTML/JavaScript and non-destructive endpoint tests
 - Per-form default/round-robin assignment and optional unassigned-enquiry alerts
+- Atomic bulk enquiry updates, private saved inbox views, and a filterable pipeline board
+- Workspace reply templates, editable native-email drafts, and same-email enquiry warnings
+- Safe form duplication with new publishable keys and separate draft configuration
+- A UTC follow-up agenda with period/assignee filters and quick rescheduling
 
 ## Run locally
 
@@ -28,6 +32,7 @@ cp .env.example .env
 # Generate NEXTAUTH_SECRET with: openssl rand -base64 32
 docker compose up -d
 pnpm install
+pnpm db:generate
 pnpm db:deploy
 pnpm dev
 ```
@@ -81,6 +86,46 @@ Owners/admins configure **Lead routing** on each form: manual (the existing defa
 Optional alerts for still-new, unassigned enquiries use the form's verified notification recipients after the selected delay. They require the existing email configuration and authenticated delivery-worker schedule. A reminder is claimed transactionally once per unassigned cycle, queued durably, and skipped if the lead is assigned/contacted, the alert is disabled, or the recipient loses access before delivery. A delay is a threshold evaluated by the worker, not a promise of exact-time delivery. It is distinct from existing date-based follow-up reminders. Reassignment resets the unassigned reminder marker.
 
 No additional environment variables are required for these agency workflows.
+
+### Inbox and pipeline
+
+Submissions supports list and pipeline layouts with the same search, status, form, and view filters. Views include unread, assigned to me, unassigned, and follow-up due. Follow-up due includes only active statuses (`NEW`, `CONTACTED`, `QUALIFIED`); it intersects with the chosen status rather than overriding it. Sorting supports newest, oldest, and follow-up date (UTC, empty dates last). Filter changes and pagination clear bulk selections.
+
+Owners/admins/members can select up to 25 enquiries on the current list page and apply one update: status, assignee (including unassignment), read/unread, or follow-up date (including clearing). Current workspace membership and eligible assignees are rechecked inside the transaction. Each selected record carries its last-seen edit timestamp. A changed, deleted, or out-of-workspace record rejects the whole batch; there are no partial writes. Changes reuse the normal contact timestamp, reminder reset, and per-enquiry activity rules. No-op updates do not create activity. There is no bulk delete, mass email, or synthetic webhook event for manual updates.
+
+Every member, including viewers, can save up to 20 named views per workspace. Saved filters and layout are private to their creator, persist across sessions, and never grant access to another workspace or form. Saving a view stores its search text, so avoid putting secrets in searches you save. View names are unique per user/workspace, ignoring case. Removing a saved view does not delete enquiries. Removing workspace access prevents reading or changing its saved views; records remain until deleted by their creator after regaining access, or until the user/workspace is deleted.
+
+The pipeline uses the existing six statuses, with current matching counts and at most 25 enquiry cards per stage. **View all** opens the complete filtered, paginated list. Writers can change a card's status using its selector and move button; viewers remain read-only. Counts and statuses reflect enquiries, not deal values, forecasts, or custom sales stages. New workflows require no additional environment variables; the build applies the saved-view migration automatically.
+
+### Follow-up agenda
+
+Open **Follow-ups** from the Inbox or the overview. Overdue means dates before today; Today is the current UTC calendar date; Next 7 days covers tomorrow through the next seven UTC dates. All scheduled includes every dated active enquiry. Closed (`WON`, `LOST`) and spam enquiries and records with no follow-up date are excluded. Dates follow the existing UTC reminder convention, not the browser's local timezone.
+
+Filter by form and everyone/me/unassigned. Counts use the same workspace and assignee/form filters as the rows. Lists are grouped by date, sorted oldest scheduled date first, and paginated at 25 enquiries. Foreign or removed form filters produce an unavailable-form empty state instead of silently showing all workspace data. The overview separates overdue and today's counts and shows the first five scheduled follow-ups.
+
+Owners/admins/members can reschedule a date or clear it; viewers can read only. Changes use the existing transactional enquiry workflow and optimistic versions, preserve status/assignee/read state, reset the reminder marker when a date changes, and write normal enquiry activity. Opening or rescheduling does not send an email or mark a lead contacted. A live completion message remains visible even when the changed row leaves the selected period. No new environment variables or database tables are required.
+
+UI refinements keep unsaved enquiry/template/date edits paired with the version that was loaded, rather than advancing the version on a background refresh. Save/copy labels reserve stable widths, controls expose busy/error/completion states, frequent navigation stays unanimated, and mobile inputs/touch targets are enlarged. Keyboard focus and reduced-motion/transparency/contrast preferences are supported. Note and deletion writes also recheck current roles under the workspace lock so a revoked user cannot write through an in-flight request.
+
+### Replies and templates
+
+Settings links to **Reply templates**. Verified owners/admins can create, edit, or delete up to 30 shared templates per workspace. Other members can read them. Names are unique within the workspace, ignoring case; subjects are one line up to 200 characters and messages up to 5,000. Saves and deletes check the last-seen edit timestamp, so a stale editor cannot overwrite a newer change. Changes record IDs in workspace activity, not message content or contact details.
+
+Templates support `{{name}}`, `{{form_name}}`, `{{workspace_name}}`, and `{{sender_name}}`. The name uses a conventional `name`, `full_name`, or `first_name` answer, otherwise `there`; it is not inferred from an email address. Substitutions are one-pass and strip control characters. Starting-point templates are available without adding default records to the database.
+
+Owners/admins/members can edit a reply draft on an enquiry with a supported email address. The recipient comes only from schema-declared email fields using the enquiry's historical snapshot. **Open email draft** creates a percent-encoded `mailto` link with only recipient, subject, and body; it requires a configured email application. **Copy message** is an alternative when a client cannot handle the draft link. These actions do not send through d3CRM, create outbound delivery jobs, change enquiry status, or claim delivery. Mark an enquiry contacted explicitly after the actual follow-up. Draft edits are local to the open page and are not saved across navigation or reloads. Viewers have no draft controls.
+
+### Related enquiries
+
+Enquiry details show **Same email** when other non-spam enquiries use the same normalized primary contact email within the current workspace, including across forms. It shows the latest five summaries and the total matching count. Email fields are considered in schema order; only the first supported single address is used. Text answers, display-name recipient lists, invalid schemas, control characters, and ambiguous addresses are never used to guess a contact. Answer data stays unchanged, while a separate indexed lowercase address supports matching.
+
+The contact migration backfills supported historical addresses from schema snapshots, using the form schema only when a snapshot is absent. Malformed snapshots are not replaced by newer schemas. Matching is a warning, not identity verification: shared addresses can belong to different people. No enquiries are merged, rejected, or deleted, and other workspaces are never searched.
+
+### Form duplication
+
+Verified owners/admins can duplicate a form within its workspace. The new form has a fresh publishable key and unique slug and starts as **DRAFT**. Only validated fields and allowed browser origins are copied. Notification recipients, webhook URLs/secrets, routing, reminder settings, connection-check state, submission history, and delivery jobs are not copied. The source form is unchanged. Duplication shares the existing create-form rate limit and billing quota, and rechecks current access under the workspace lock even when billing is disabled.
+
+Review the copied fields and origins, configure recipients and routing for the new use, and set the form live before testing its public connection. Its publishable key is returned once on the duplication screen; copy it into the connection wizard or rotate it later. It is not stored in URLs or browser storage. No new environment variables are required for replies, matching, or duplication. Local development needs the updated Prisma client and all migrations; deployment uses the existing generate/deploy/build sequence.
 
 ### Campaign attribution
 
@@ -146,6 +191,12 @@ Deploy behind HTTPS with a strong `NEXTAUTH_SECRET`, run `pnpm build` (which app
 For isolated checks, create a local database named `d3crm_security_test` and a git-ignored `.env.test` with its `DATABASE_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, and `CRON_SECRET`. Apply migrations with that local URL explicitly set. Start the app with those same variables (the normal `.env` may point to a hosted database). `pnpm test:integration` refuses non-local databases and non-test database names; it creates and removes only its own fixtures. It checks workspace isolation, token replay/expiry, session invalidation, parallel throttling, request limits, historical CSV exports, delivery retries/claims, SSRF rejection, billing signatures, quotas, attribution validation, transactional activity, concurrent lead edits, and scoped reporting. Email provider requests are mocked; no real emails or charges are sent. To seed disposable preview data, run `node --env-file=.env.test --experimental-strip-types scripts/seed-demo.ts`.
 
 Agency checks also cover client isolation, non-destructive connection tests, routing authorization, parallel round robin, ineligible members, and obsolete alert suppression. For a separate-origin browser fixture, run `NEXTAUTH_URL=http://localhost:3100 node --env-file=.env.test --experimental-strip-types scripts/preview-integration.ts` with the local app running on port 3100, then open `http://localhost:3200`. Seed demo data first. This script refuses hosted/non-test databases and rotates only its own disposable preview form key. Test mode creates no enquiry; Live mode sends a dummy enquiry only to the local database.
+
+Reply and reuse checks cover current verified-role checks, stale template edits, private audit data, concurrent template/form quotas, single-address draft encoding, conservative contact extraction, workspace-scoped related enquiries, read-only viewers, and fresh draft form defaults. Follow-up checks cover UTC period boundaries, scoped counts, pagination, rescheduling, reminder resets, and revoked-role note/delete rejection. Migration fixtures include historical snapshots, absent and malformed snapshots, ambiguous addresses, and typed text answers. Regenerate the Prisma client and migrate only the explicitly selected local test database before running these checks.
+
+Browser regression checks should also verify two consecutive saves, navigation after a save, new templates appearing without a reload, clearing/rescheduling a follow-up out of the current period with visible confirmation, private saved-view creation/removal, and a duplicated form's one-time key. On an enquiry, edit the date using the native date picker or keyboard, add a note, and confirm the unsaved date and reply draft remain intact. Test viewer restrictions and layouts at 320px, 390px, and desktop widths. These interactions are browser checks, not coverage provided by the server integration suite. Run standalone type checks after a build completes, not while Next is regenerating its type files.
+
+Bulk and pipeline changes use an authenticated, same-origin, size-limited JSON endpoint backed by the same atomic lead workflow. A confirmed save reloads the current filtered view; conflicts and validation errors preserve the selection. List/pipeline mode changes also use document navigation. This keeps these workflows usable when a production App Router transition does not commit. Other draft editors retain their local state during refreshes.
 
 ## Checks
 

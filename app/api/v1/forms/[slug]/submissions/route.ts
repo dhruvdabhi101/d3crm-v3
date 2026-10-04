@@ -8,6 +8,7 @@ import { readJson, requestIp, RequestError } from "@/lib/security";
 import { checkQuota } from "@/lib/billing";
 import { authorizeForm, corsHeaders, formPayload } from "@/lib/forms/endpoint";
 import { chooseAssignee } from "@/lib/assignment";
+import { primaryContactEmail } from "@/lib/forms/contact";
 
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(request.headers.get("origin")) });
@@ -41,6 +42,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     data: {
       formId: form.id,
       data: validated.data,
+      contactEmail: primaryContactEmail(form.schema, validated.data),
       schemaSnapshot: form.schema as Prisma.InputJsonValue,
       attribution: validated.attribution,
       assigneeId: assignment.assigneeId,

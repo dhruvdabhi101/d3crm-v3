@@ -19,10 +19,23 @@ try {
     INSERT INTO "Organization" (id, name, slug, "updatedAt") VALUES ('legacy-org', 'Legacy Workspace', 'legacy-workspace', now());
     INSERT INTO "OrganizationMember" (id, role, "userId", "organizationId") VALUES ('legacy-member', 'OWNER', 'legacy-owner', 'legacy-org');
     INSERT INTO "Form" (id, name, slug, schema, "keyPrefix", "keyHash", "organizationId", "updatedAt")
-      VALUES ('legacy-form', 'Legacy Form', 'legacy-form', '{"version":1,"fields":[{"id":"name","label":"Original name","type":"text","required":true}]}', 'fixture', 'fixture', 'legacy-org', now());
-    INSERT INTO "Submission" (id, data, "formId") VALUES ('legacy-enquiry', '{"name":"Preserved enquiry"}', 'legacy-form');
+      VALUES ('legacy-form', 'Legacy Form', 'legacy-form', '{"version":1,"fields":[{"id":"name","label":"Original name","type":"text","required":true},{"id":"email","label":"Original email","type":"email","required":false}]}', 'fixture', 'fixture', 'legacy-org', now());
+    INSERT INTO "Submission" (id, data, "formId") VALUES ('legacy-enquiry', '{"name":"Preserved enquiry","email":"LEGACY@Example.Test"}', 'legacy-form');
   `);
-  migrations.slice(2).forEach(apply);
+  migrations.slice(2).forEach(name => {
+    if (name === "20261004170000_lead_contact_email") sql(`
+      UPDATE "Form" SET schema='{"version":1,"fields":[{"id":"alternate_email","label":"Current email","type":"email","required":false}]}' WHERE id='legacy-form';
+      INSERT INTO "Submission" (id, data, "formId", "schemaSnapshot") VALUES
+        ('fallback-contact', '{"alternate_email":"CURRENT@Example.Test"}', 'legacy-form', NULL),
+        ('json-null-contact', '{"alternate_email":"CURRENT@Example.Test"}', 'legacy-form', 'null'),
+        ('malformed-contact', '{"email":"legacy@example.test","alternate_email":"current@example.test"}', 'legacy-form', '{"version":1,"fields":[]}'),
+        ('text-contact', '{"email":"legacy@example.test"}', 'legacy-form', '{"version":1,"fields":[{"id":"email","label":"Text","type":"text","required":false}]}'),
+        ('ambiguous-contact', '{"email":"one@example.test,two@example.test"}', 'legacy-form', '{"version":1,"fields":[{"id":"email","label":"Email","type":"email","required":false}]}'),
+        ('object-contact', '{"email":{"address":"one@example.test"}}', 'legacy-form', '{"version":1,"fields":[{"id":"email","label":"Email","type":"email","required":false}]}'),
+        ('first-contact', '{"one":"FIRST@Example.Test","two":"second@example.test"}', 'legacy-form', '{"version":1,"fields":[{"id":"one","label":"First email","type":"email","required":false},{"id":"two","label":"Second email","type":"email","required":false}]}');
+    `);
+    apply(name);
+  });
   assert.equal(sql(`SELECT data->>'name' FROM "Submission" WHERE id='legacy-enquiry'`).trim(), "Preserved enquiry");
   assert.equal(sql(`SELECT "schemaSnapshot"->'fields'->0->>'label' FROM "Submission" WHERE id='legacy-enquiry'`).trim(), "Original name");
   assert.equal(sql(`SELECT status FROM "Submission" WHERE id='legacy-enquiry'`).trim(), "NEW");
@@ -31,7 +44,13 @@ try {
   assert.equal(sql(`SELECT "firstContactedAt" IS NULL AND attribution IS NULL FROM "Submission" WHERE id='legacy-enquiry'`).trim(), "t");
   assert.equal(sql(`SELECT "assignmentMode" = 'NONE' AND "unassignedAlertMinutes" IS NULL AND "connectionCheckedAt" IS NULL FROM "Form" WHERE id='legacy-form'`).trim(), "t");
   assert.equal(sql(`SELECT NOT "isClient" AND "clientWebsite" IS NULL FROM "Organization" WHERE id='legacy-org'`).trim(), "t");
-  console.log("Passed: existing enquiries, schema snapshots, defaults, and monthly usage survive all migrations.");
+  assert.equal(sql(`SELECT count(*) FROM "SavedInboxView"`).trim(), "0");
+  assert.equal(sql(`SELECT "contactEmail" FROM "Submission" WHERE id='legacy-enquiry'`).trim(), "legacy@example.test");
+  assert.equal(sql(`SELECT count(*) FROM "Submission" WHERE id IN ('fallback-contact','json-null-contact') AND "contactEmail"='current@example.test'`).trim(), "2");
+  assert.equal(sql(`SELECT count(*) FROM "Submission" WHERE id IN ('malformed-contact','text-contact','ambiguous-contact','object-contact') AND "contactEmail" IS NULL`).trim(), "4");
+  assert.equal(sql(`SELECT "contactEmail" FROM "Submission" WHERE id='first-contact'`).trim(), "first@example.test");
+  assert.equal(sql(`SELECT count(*) FROM "ReplyTemplate"`).trim(), "0");
+  console.log("Passed: existing enquiries, schema snapshots, safe contact backfills, defaults, and monthly usage survive all migrations.");
 } finally {
   sql(`DROP DATABASE "${database}"`, "postgres");
 }
