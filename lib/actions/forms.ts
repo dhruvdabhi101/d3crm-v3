@@ -12,8 +12,22 @@ import { encrypt, randomToken, webhookUrl, RequestError } from "@/lib/security";
 import { mailConfigured } from "@/lib/deliveries";
 import { checkQuota } from "@/lib/billing";
 import { rateLimit } from "@/lib/rate-limit";
+import { routingInput, saveRouting } from "@/lib/assignment";
 
 export type FormActionState = { error?: string; success?: string; created?: { id: string; slug: string; key: string; name?: string; schema?: FormSchema; allowedOrigins?: string[] } };
+
+export async function updateRouting(id: string, _state: FormActionState, formData: FormData): Promise<FormActionState> {
+  const { organization, user } = await requireRole(Role.ADMIN);
+  if (!user.emailVerifiedAt) return { error: "Verify your email in Settings first." };
+  try {
+    const input = routingInput(formData);
+    const updatedAt = new Date(String(formData.get("updatedAt") ?? ""));
+    if (isNaN(updatedAt.getTime())) return { error: "Reload the form before saving." };
+    await db.$transaction(tx => saveRouting(tx, organization.id, user.id, id, updatedAt, input));
+  } catch (error) { if (error instanceof RequestError) return { error: error.message }; throw error; }
+  revalidatePath(`/forms/${id}`); revalidatePath("/activity");
+  return { success: "Routing saved." };
+}
 
 function formInput(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
@@ -36,7 +50,7 @@ export async function updateForm(id: string, _state: FormActionState, formData: 
   const schemaVersion = Number(formData.get("schemaVersion"));
   if (!Number.isInteger(schemaVersion) || schemaVersion < 1) return { error: "Reload the form and try again." };
   const result = await db.$transaction(async tx => {
-    const changed = await tx.form.updateMany({ where: { id, organizationId: organization.id, schemaVersion }, data: { ...input, schemaVersion: { increment: 1 } } });
+    const changed = await tx.form.updateMany({ where: { id, organizationId: organization.id, schemaVersion }, data: { ...input, schemaVersion: { increment: 1 }, connectionCheckedAt: null, connectionCheckedVersion: null } });
     if (changed.count) await tx.activity.create({ data: { organizationId: organization.id, actorId: user.id, subjectId: id, action: "form.updated", details: { schemaVersion: schemaVersion + 1 } } });
     return changed;
   });
@@ -112,7 +126,7 @@ export async function rotateFormKey(_state: FormActionState, formData: FormData)
   const id = String(formData.get("id") ?? "");
   const key = createFormKey();
   const result = await db.$transaction(async tx => {
-    const changed = await tx.form.updateMany({ where: { id, organizationId: organization.id }, data: { keyPrefix: key.prefix, keyHash: key.hash } });
+    const changed = await tx.form.updateMany({ where: { id, organizationId: organization.id }, data: { keyPrefix: key.prefix, keyHash: key.hash, connectionCheckedAt: null, connectionCheckedVersion: null } });
     if (changed.count) await tx.activity.create({ data: { organizationId: organization.id, actorId: user.id, subjectId: id, action: "form.key_rotated" } });
     return changed;
   });

@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { mailConfigured, mailJob, processDeliveries } from "@/lib/deliveries";
 import { appUrl, safeEqual } from "@/lib/security";
+import { queueUnassignedAlerts } from "@/lib/assignment";
 
 export async function POST(request: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || secret.length < 32 || secret.startsWith("replace-with") || !safeEqual(request.headers.get("authorization") ?? "", `Bearer ${secret}`)) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   if (mailConfigured()) {
+    await queueUnassignedAlerts();
     const due = await db.submission.findMany({ where: { followUpAt: { lte: new Date() }, followUpNotifiedAt: null, status: { in: ["NEW", "CONTACTED", "QUALIFIED"] }, assignee: { emailVerifiedAt: { not: null } } }, include: { form: true, assignee: true }, take: 50 });
     for (const lead of due) {
       if (!lead.assignee || !lead.form.notificationEmails.includes(lead.assignee.email)) {

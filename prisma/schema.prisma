@@ -41,6 +41,8 @@ model Organization {
   usageMonth           DateTime             @default(now())
   monthlySubmissions   Int                  @default(0)
   activities           Activity[]
+  isClient             Boolean              @default(false)
+  clientWebsite        String?
 }
 
 model OrganizationMember {
@@ -58,50 +60,58 @@ model OrganizationMember {
 }
 
 model Form {
-  id                 String             @id @default(cuid())
-  name               String
-  slug               String             @unique
-  status             FormStatus         @default(LIVE)
-  schema             Json               @db.JsonB
-  schemaVersion      Int                @default(1)
-  allowedOrigins     String[]           @default([])
-  notificationEmails String[]           @default([])
-  webhookUrl         String?
-  webhookSecret      String?
-  keyPrefix          String
-  keyHash            String             @unique
-  organizationId     String
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  submissions        Submission[]
-  deliveries         OutboundDelivery[]
+  id                       String             @id @default(cuid())
+  name                     String
+  slug                     String             @unique
+  status                   FormStatus         @default(LIVE)
+  schema                   Json               @db.JsonB
+  schemaVersion            Int                @default(1)
+  allowedOrigins           String[]           @default([])
+  notificationEmails       String[]           @default([])
+  webhookUrl               String?
+  webhookSecret            String?
+  keyPrefix                String
+  keyHash                  String             @unique
+  organizationId           String
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+  organization             Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  submissions              Submission[]
+  deliveries               OutboundDelivery[]
+  assignmentMode           AssignmentMode     @default(NONE)
+  defaultAssigneeId        String?
+  assignmentMemberIds      String[]           @default([])
+  assignmentCursor         Int                @default(0)
+  unassignedAlertMinutes   Int?
+  connectionCheckedAt      DateTime?
+  connectionCheckedVersion Int?
 
   @@index([organizationId, createdAt])
 }
 
 model Submission {
-  id                 String             @id @default(cuid())
-  data               Json               @db.JsonB
-  schemaSnapshot     Json?              @db.JsonB
-  status             LeadStatus         @default(NEW)
-  readAt             DateTime?
-  assigneeId         String?
-  followUpAt         DateTime?
-  followUpNotifiedAt DateTime?
-  firstContactedAt   DateTime?
-  attribution        Json?              @db.JsonB
-  updatedAt          DateTime           @default(now()) @updatedAt
-  assignee           User?              @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
-  notes              SubmissionNote[]
-  deliveries         OutboundDelivery[]
-  activities         Activity[]
-  sourceOrigin       String?
-  userAgent          String?
-  ipHash             String?
-  formId             String
-  createdAt          DateTime           @default(now())
-  form               Form               @relation(fields: [formId], references: [id], onDelete: Cascade)
+  id                   String             @id @default(cuid())
+  data                 Json               @db.JsonB
+  schemaSnapshot       Json?              @db.JsonB
+  status               LeadStatus         @default(NEW)
+  readAt               DateTime?
+  assigneeId           String?
+  followUpAt           DateTime?
+  followUpNotifiedAt   DateTime?
+  unassignedNotifiedAt DateTime?
+  firstContactedAt     DateTime?
+  attribution          Json?              @db.JsonB
+  updatedAt            DateTime           @default(now()) @updatedAt
+  assignee             User?              @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  notes                SubmissionNote[]
+  deliveries           OutboundDelivery[]
+  activities           Activity[]
+  sourceOrigin         String?
+  userAgent            String?
+  ipHash               String?
+  formId               String
+  createdAt            DateTime           @default(now())
+  form                 Form               @relation(fields: [formId], references: [id], onDelete: Cascade)
 
   @@index([formId, createdAt])
   @@index([formId, ipHash, createdAt])
@@ -236,4 +246,10 @@ enum FormStatus {
   DRAFT
   LIVE
   ARCHIVED
+}
+
+enum AssignmentMode {
+  NONE
+  DEFAULT
+  ROUND_ROBIN
 }

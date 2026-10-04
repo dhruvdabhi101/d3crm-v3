@@ -17,6 +17,9 @@ A deliberately small contact-form CRM: one Next.js application, PostgreSQL, Pris
 - Optional Stripe subscriptions, customer portal, and configurable plan limits
 - Enquiry timelines and owner/admin workspace activity for lead, form, and team changes
 - Optional campaign attribution and date/form-filtered lead reports
+- Client workspace creation, isolated access, and a cross-client enquiry overview
+- A connection wizard with generated HTML/JavaScript and non-destructive endpoint tests
+- Per-form default/round-robin assignment and optional unassigned-enquiry alerts
 
 ## Run locally
 
@@ -56,6 +59,28 @@ fetch("https://your-crm.example/api/v1/forms/FORM_SLUG/submissions", {
 ```
 
 The key identifies a form and is safe to embed in a browser, but it is not a secret: website visitors can inspect it. Origin checks and throttling reduce casual abuse; public production deployments should add an edge/WAF rate limiter for stronger abuse protection.
+
+### Connection wizard
+
+Owners/admins can open **Connect website** on a form or use the wizard immediately after creation, where the one-time publishable key is prefilled. Existing keys cannot be recovered: supply the original key or rotate it. Keys entered in the wizard are not saved in URLs, local storage, or additional database columns.
+
+The wizard generates complete HTML/JavaScript or JavaScript for an existing form element ID. Existing form controls must have the exact schema field names. The generated handler validates inputs, converts number/checkbox values, prevents simultaneous submits, preserves answers on failures, and includes campaign context. It uses ordinary JavaScript, not native platform plugins; check your website builder's custom-code support. Install one handler, replacing the test script with the live script rather than keeping both.
+
+Test mode posts to `/api/v1/forms/{slug}/verify`. It checks the current key, live status, browser-origin policy, schema, and metadata without creating an enquiry, consuming submission quota, assigning a lead, or sending an email/webhook. Public tests are throttled and record a schema-versioned endpoint-check event. The authenticated dashboard check validates a sample for the entered website origin; it does not fetch the website, prove code is installed there, or verify notification delivery. Use the generated test code on the real website to exercise CORS, then switch to live mode. **Endpoint checked** and **Last enquiry received** are deliberately separate signals. Schema edits and key rotations clear prior check status.
+
+### Client workspaces
+
+Verified owners/admins can create a client workspace from **Clients**. Creation makes that user its owner; source-workspace teammates do not automatically gain access. Each client uses the existing invitations, member roles, ownership transfer, forms, and billing controls. Open a client before inviting its team or transferring ownership in Settings. The agency user can remain an admin after transfer, or be removed by the new owner.
+
+The Clients view summarizes only client workspaces where the signed-in user has a current membership. Counts include non-spam enquiries, unread enquiries, new unassigned enquiries, and overdue follow-ups. Website addresses are metadata only and are not fetched or automatically added to form allowlists. Existing workspaces are not relabeled as clients. Client creation stops when a user already owns 50 workspaces and is throttled to 10 per day. Free/Pro subscriptions and limits remain per workspace, with no invented shared agency subscription or consolidated invoice.
+
+### Automatic assignment
+
+Owners/admins configure **Lead routing** on each form: manual (the existing default), a default assignee, or round robin across selected writers. Only current owners/admins/members are eligible. Routing and quota reservation run within the submission transaction under the workspace lock, keeping concurrent round robin consistent; an empty or no-longer-eligible pool leaves the lead unassigned. Assignment writes an activity event and is included in webhook metadata. It applies only to new enquiries, not existing records. Removing a member or downgrading them to viewer unassigns their current leads; stale routing IDs are ignored until configuration is updated.
+
+Optional alerts for still-new, unassigned enquiries use the form's verified notification recipients after the selected delay. They require the existing email configuration and authenticated delivery-worker schedule. A reminder is claimed transactionally once per unassigned cycle, queued durably, and skipped if the lead is assigned/contacted, the alert is disabled, or the recipient loses access before delivery. A delay is a threshold evaluated by the worker, not a promise of exact-time delivery. It is distinct from existing date-based follow-up reminders. Reassignment resets the unassigned reminder marker.
+
+No additional environment variables are required for these agency workflows.
 
 ### Campaign attribution
 
@@ -119,6 +144,8 @@ Deploy behind HTTPS with a strong `NEXTAUTH_SECRET`, run `pnpm build` (which app
 ## Local Workflow Verification
 
 For isolated checks, create a local database named `d3crm_security_test` and a git-ignored `.env.test` with its `DATABASE_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, and `CRON_SECRET`. Apply migrations with that local URL explicitly set. Start the app with those same variables (the normal `.env` may point to a hosted database). `pnpm test:integration` refuses non-local databases and non-test database names; it creates and removes only its own fixtures. It checks workspace isolation, token replay/expiry, session invalidation, parallel throttling, request limits, historical CSV exports, delivery retries/claims, SSRF rejection, billing signatures, quotas, attribution validation, transactional activity, concurrent lead edits, and scoped reporting. Email provider requests are mocked; no real emails or charges are sent. To seed disposable preview data, run `node --env-file=.env.test --experimental-strip-types scripts/seed-demo.ts`.
+
+Agency checks also cover client isolation, non-destructive connection tests, routing authorization, parallel round robin, ineligible members, and obsolete alert suppression. For a separate-origin browser fixture, run `NEXTAUTH_URL=http://localhost:3100 node --env-file=.env.test --experimental-strip-types scripts/preview-integration.ts` with the local app running on port 3100, then open `http://localhost:3200`. Seed demo data first. This script refuses hosted/non-test databases and rotates only its own disposable preview form key. Test mode creates no enquiry; Live mode sends a dummy enquiry only to the local database.
 
 ## Checks
 

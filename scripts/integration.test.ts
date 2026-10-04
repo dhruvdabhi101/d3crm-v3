@@ -9,6 +9,8 @@ import { checkQuota, verifyStripeSignature } from "../lib/billing.ts";
 import { webhookSignature } from "../lib/security.ts";
 import { addLeadNote, removeLead, saveLead } from "../lib/lead-workflow.ts";
 import { leadReport, reportRange } from "../lib/reports.ts";
+import { clientInput, clientWorkspaces, createClientWorkspace } from "../lib/workspaces.ts";
+import { queueUnassignedAlerts, saveRouting } from "../lib/assignment.ts";
 
 const base = process.env.NEXTAUTH_URL!;
 const url = new URL(process.env.DATABASE_URL!);
@@ -38,7 +40,7 @@ class Client {
   }
 }
 
-async function fixture(name: string, role: "OWNER" | "VIEWER" = "OWNER", organizationId?: string) {
+async function fixture(name: string, role: "OWNER" | "VIEWER" | "MEMBER" = "OWNER", organizationId?: string) {
   const user = await db.user.create({ data: { name, email: `${name.toLowerCase()}-${suffix}@example.test`, passwordHash: await hash("IntegrationPassword2026!", 12), emailVerifiedAt: new Date() } }); userIds.push(user.id);
   const org = organizationId ? null : await db.organization.create({ data: { name: `${name} ${suffix}`, slug: `${name.toLowerCase()}-${suffix}` } });
   if (org) orgIds.push(org.id);
@@ -147,6 +149,67 @@ try {
   assert.equal(await db.activity.count({ where: { organizationId: owner.organizationId, action: "lead.deleted", subjectId: lead.id, submissionId: null } }), 1);
   assert.equal(await db.activity.count({ where: { organizationId: owner.organizationId, subjectId: lead.id, submissionId: null } }), 5);
   console.log("PASS worker authentication and deletion of queued enquiry data");
+
+  const client = await db.$transaction(tx => createClientWorkspace(tx, owner.user.id, owner.organizationId, clientInput(`Client ${suffix}`, "https://client.example/contact"))); orgIds.push(client.id);
+  const otherClient = await db.$transaction(tx => createClientWorkspace(tx, outsider.user.id, outsider.organizationId, clientInput(`Outside client ${suffix}`, ""))); orgIds.push(otherClient.id);
+  await assert.rejects(() => db.$transaction(tx => createClientWorkspace(tx, viewer.user.id, owner.organizationId, clientInput(`Denied ${suffix}`, ""))), { status: 403 });
+  await assert.rejects(() => db.$transaction(tx => createClientWorkspace(tx, outsider.user.id, owner.organizationId, clientInput(`Denied ${suffix}`, ""))), { status: 403 });
+  assert.deepEqual((await clientWorkspaces(owner.user.id)).map(row => row.organization.id), [client.id]);
+  assert.equal((await clientWorkspaces(viewer.user.id)).length, 0);
+  await ownerClient.login(owner.user.email, "NewPassword2026!");
+  const clientsPage = await ownerClient.fetch("/clients"); const clientsHtml = await clientsPage.text();
+  assert.ok(clientsHtml.includes(client.name) && !clientsHtml.includes(otherClient.name));
+  const writer = await fixture("Writer", "MEMBER", owner.organizationId);
+  const routingKey = createFormKey();
+  const routingForm = await db.form.create({ data: { name: "Routing test", slug: `routing-${suffix}`, organizationId: owner.organizationId, schema, keyHash: routingKey.hash, keyPrefix: routingKey.prefix, allowedOrigins: ["https://allowed.example"] } });
+  const sendRouting = (path: string, data = payload, origin = "https://allowed.example", key = routingKey.key) => fetch(`${base}/api/v1/forms/${routingForm.slug}/${path}`, { method: "POST", headers: { Origin: origin, "X-Form-Key": key, "Content-Type": "application/json" }, body: JSON.stringify(data) });
+  const usageBefore = (await db.organization.findUniqueOrThrow({ where: { id: owner.organizationId } })).monthlySubmissions;
+  assert.equal((await sendRouting("verify", payload, "https://evil.example")).status, 403);
+  assert.equal((await sendRouting("verify", payload, undefined, "wrong-key")).status, 404);
+  assert.equal((await sendRouting("verify", { ...payload, email: "invalid" })).status, 422);
+  const verified = await sendRouting("verify"); assert.equal(verified.status, 200); assert.equal((await verified.json()).test, true);
+  assert.equal(verified.headers.get("access-control-allow-origin"), "https://allowed.example");
+  assert.equal(await db.submission.count({ where: { formId: routingForm.id } }), 0);
+  assert.equal(await db.outboundDelivery.count({ where: { formId: routingForm.id } }), 0);
+  assert.equal((await db.organization.findUniqueOrThrow({ where: { id: owner.organizationId } })).monthlySubmissions, usageBefore);
+  assert.ok((await db.form.findUniqueOrThrow({ where: { id: routingForm.id } })).connectionCheckedAt);
+  assert.equal((await outsiderClient.fetch(`/forms/${routingForm.id}/connect`)).status, 200);
+  const outsideConnect = await outsiderClient.fetch(`/forms/${routingForm.id}/connect`); assert.ok(!(await outsideConnect.text()).includes("Routing test"));
+  const routingState = { assignmentMode: "DEFAULT" as const, defaultAssigneeId: outsider.user.id, assignmentMemberIds: [], unassignedAlertMinutes: null };
+  let version = (await db.form.findUniqueOrThrow({ where: { id: routingForm.id } })).updatedAt;
+  await assert.rejects(() => db.$transaction(tx => saveRouting(tx, owner.organizationId, owner.user.id, routingForm.id, version, routingState)), { status: 400 });
+  await assert.rejects(() => db.$transaction(tx => saveRouting(tx, owner.organizationId, viewer.user.id, routingForm.id, version, { ...routingState, defaultAssigneeId: owner.user.id })), { status: 403 });
+  await db.$transaction(tx => saveRouting(tx, owner.organizationId, owner.user.id, routingForm.id, version, { ...routingState, defaultAssigneeId: owner.user.id }));
+  const assigned = await sendRouting("submissions"); assert.equal(assigned.status, 201); const assignedLead = (await assigned.json()).submission;
+  assert.equal((await db.submission.findUniqueOrThrow({ where: { id: assignedLead.id } })).assigneeId, owner.user.id);
+  assert.equal(await db.activity.count({ where: { submissionId: assignedLead.id, action: "lead.auto_assigned" } }), 1);
+  version = (await db.form.findUniqueOrThrow({ where: { id: routingForm.id } })).updatedAt;
+  await db.$transaction(tx => saveRouting(tx, owner.organizationId, owner.user.id, routingForm.id, version, { assignmentMode: "ROUND_ROBIN", defaultAssigneeId: null, assignmentMemberIds: [owner.user.id, writer.user.id], unassignedAlertMinutes: null }));
+  const rotated = await Promise.all(Array.from({ length: 6 }, () => sendRouting("submissions")));
+  assert.ok(rotated.every(response => response.status === 201));
+  const rotations = await db.submission.findMany({ where: { formId: routingForm.id, id: { not: assignedLead.id } } });
+  assert.equal(rotations.filter(lead => lead.assigneeId === owner.user.id).length, 3);
+  assert.equal(rotations.filter(lead => lead.assigneeId === writer.user.id).length, 3);
+  await db.organizationMember.update({ where: { userId_organizationId: { userId: writer.user.id, organizationId: owner.organizationId } }, data: { role: "VIEWER" } });
+  const afterRemoval = await sendRouting("submissions"); assert.equal(afterRemoval.status, 201);
+  assert.equal((await db.submission.findUniqueOrThrow({ where: { id: (await afterRemoval.json()).submission.id } })).assigneeId, owner.user.id);
+  await db.form.update({ where: { id: routingForm.id }, data: { assignmentMode: "NONE", unassignedAlertMinutes: 15, notificationEmails: [owner.user.email] } });
+  const unassignedLead = await db.submission.create({ data: { formId: routingForm.id, data: payload, schemaSnapshot: schema, createdAt: new Date(Date.now() - 16 * 60_000) } });
+  await Promise.all([queueUnassignedAlerts(), queueUnassignedAlerts()]);
+  assert.equal(await db.outboundDelivery.count({ where: { submissionId: unassignedLead.id } }), 1);
+  await db.submission.update({ where: { id: unassignedLead.id }, data: { assigneeId: owner.user.id } });
+  const staleAlert = await db.outboundDelivery.findFirstOrThrow({ where: { submissionId: unassignedLead.id } });
+  assert.equal((await processDeliveries([staleAlert.id])).sent, 0);
+  assert.equal((await db.outboundDelivery.findUniqueOrThrow({ where: { id: staleAlert.id } })).status, "SKIPPED");
+  const freshAlertLead = await db.submission.create({ data: { formId: routingForm.id, data: payload, schemaSnapshot: schema, createdAt: new Date(Date.now() - 16 * 60_000) } });
+  await queueUnassignedAlerts();
+  const freshAlert = await db.outboundDelivery.findFirstOrThrow({ where: { submissionId: freshAlertLead.id } });
+  const alertFetch = globalThis.fetch; let alertSends = 0;
+  process.env.RESEND_API_KEY = "test-only"; process.env.MAIL_FROM = "test@example.test";
+  globalThis.fetch = async (_url, init) => { alertSends++; assert.ok(String(init?.body).includes("Unassigned enquiry")); assert.ok(!String(init?.body).includes("lead@example.test")); return new Response("", { status: 200 }); };
+  try { assert.equal((await processDeliveries([freshAlert.id])).sent, 1); assert.equal(alertSends, 1); }
+  finally { globalThis.fetch = alertFetch; delete process.env.RESEND_API_KEY; delete process.env.MAIL_FROM; }
+  console.log("PASS client-workspace isolation, dry-run verification, concurrent round robin, removed-member filtering and stale-alert suppression");
 
   const originalFetch = globalThis.fetch;
   process.env.RESEND_API_KEY = "test-only"; process.env.MAIL_FROM = "test@example.test";

@@ -21,7 +21,7 @@ These addresses are published on the agencies' own websites, not guessed persona
 
 - Replace `[Your name]` with your actual signature; the public URL is confirmed, but the signature name was not supplied.
 - Verify registration, email verification, form submission, and notification delivery on the deployed site. A successful local build is not production verification.
-- The new Reports, Activity, and attribution changes are local until deployed. These drafts intentionally do not advertise those features as already live.
+- Reports, Activity, and attribution were not deployed when these drafts were written. The drafts deliberately focus on the core enquiry workflow; mention newer capabilities only after checking them on the deployed site.
 - Do not claim native Webflow/Framer/Wix plugins, one-click integration, white-label d3CRM branding, file uploads, SMS, unlimited workspaces, compliance certification, or customer results. None was established here.
 - Start with the first three agencies, one personal email each. Ask about one real project and the workflow they use today. Discuss price after fit is established; no invented price or free trial promise.
 - Use one honest follow-up, then stop without a reply. Respect refusals; do not add recipients to automated campaigns.

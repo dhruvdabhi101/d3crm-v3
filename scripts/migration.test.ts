@@ -29,6 +29,8 @@ try {
   assert.equal(sql(`SELECT "monthlySubmissions" FROM "Organization" WHERE id='legacy-org'`).trim(), "1");
   assert.equal(sql(`SELECT 'SKIPPED'::"DeliveryStatus"`).trim(), "SKIPPED");
   assert.equal(sql(`SELECT "firstContactedAt" IS NULL AND attribution IS NULL FROM "Submission" WHERE id='legacy-enquiry'`).trim(), "t");
+  assert.equal(sql(`SELECT "assignmentMode" = 'NONE' AND "unassignedAlertMinutes" IS NULL AND "connectionCheckedAt" IS NULL FROM "Form" WHERE id='legacy-form'`).trim(), "t");
+  assert.equal(sql(`SELECT NOT "isClient" AND "clientWebsite" IS NULL FROM "Organization" WHERE id='legacy-org'`).trim(), "t");
   console.log("Passed: existing enquiries, schema snapshots, defaults, and monthly usage survive all migrations.");
 } finally {
   sql(`DROP DATABASE "${database}"`, "postgres");

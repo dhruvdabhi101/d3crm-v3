@@ -17,6 +17,8 @@ The form must be Live. Requests from browsers must match the configured origin a
 
 Optional campaign metadata goes in a separate top-level _context object: landing_page, referrer, utm_source, utm_medium, utm_campaign, utm_term, utm_content. Do not put it in the form schema or nest answers inside it. URLs must use HTTP/HTTPS, have no credentials, and be at most 2048 characters; stored URLs exclude query strings and fragments. UTM values are strings of at most 200 characters. Read campaign parameters from the current URL using URLSearchParams; omit missing values. Prefer location.origin + location.pathname for landing_page. Do not add cookies or storage tracking. Do not send personal data in URLs or campaign values. Invalid _context returns 422 with fields._context. Existing integrations may omit it. Metadata is included in webhook events and _context.* CSV columns.
 
+Owners/admins have a Connect website wizard that generates HTML/JavaScript or a handler for an existing form element ID. In test mode, POST the same payload/key to /api/v1/forms/{slug}/verify instead of /submissions. HTTP 200 with {ok:true,test:true,schemaVersion} means a valid dry run: no enquiry, quota usage, assignment, email, or webhook is created. It checks the same live form/key/origin and schema rules and records an endpoint-check event. Test code must run on the actual website to exercise its browser CORS policy. Replace the test handler with one live handler, do not attach both. A dashboard endpoint check does not prove the website is installed or that email delivery works. Only send live test enquiries with user approval.
+
 ## Responses and UX
 201: {ok:true,submission:{id,createdAt}}. 202: accepted.
 422: {error,fields}; fields maps IDs to validation errors.

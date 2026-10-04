@@ -1,5 +1,5 @@
 import { AgentKit } from "@/components/agent-kit";
-import { Download, ExternalLink, Pencil } from "lucide-react";
+import { Download, ExternalLink, Pencil, Plug } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CopyButton } from "@/components/copy-button";
@@ -15,6 +15,7 @@ import { RetryDelivery } from "@/components/retry-delivery";
 import { mailConfigured } from "@/lib/deliveries";
 import { FormStatusControl } from "@/components/form-status";
 import { historicalColumns } from "@/lib/forms/history";
+import { FormRouting } from "@/components/form-routing";
 
 function valueLabel(value: unknown) {
   if (typeof value === "boolean") return value ? "Yes" : "No";
@@ -31,6 +32,7 @@ export default async function FormDetailPage({ params }: { params: Promise<{ id:
   });
   if (!form) notFound();
   const members = canAdmin ? await db.organizationMember.findMany({ where: { organizationId: organization.id }, select: { user: { select: { name: true, email: true, emailVerifiedAt: true } } } }) : [];
+  const assignees = canAdmin ? await db.organizationMember.findMany({ where: { organizationId: organization.id, role: { in: ["OWNER", "ADMIN", "MEMBER"] } }, select: { user: { select: { id: true, name: true } } } }) : [];
   const deliveries = canAdmin ? await db.outboundDelivery.findMany({ where: { formId: id }, orderBy: { createdAt: "desc" }, take: 20 }) : [];
   const schema = parseFormSchema(form.schema);
   const columns = historicalColumns(form.schema, form.submissions);
@@ -40,6 +42,7 @@ export default async function FormDetailPage({ params }: { params: Promise<{ id:
 
   return <div className="page">
     <PageHeader eyebrow="Form details" title={form.name} description={`${form._count.submissions} total submissions · Created ${form.createdAt.toLocaleDateString("en", { dateStyle: "medium" })}`} action={<div className="header-actions"><StatusPill status={form.status} />{canAdmin && <Link className="button button-secondary" href={`/forms/${id}/edit`}><Pencil size={15} />Edit form</Link>}<a className="button button-secondary" href={`/api/forms/${form.id}/export`}><Download size={15} />Export CSV</a></div>} />
+    {canAdmin && <div className="connect-entry"><Link className="button button-secondary" href={`/forms/${id}/connect`}><Plug size={15} />Connect website</Link></div>}
     <AgentKit name={form.name} endpoint={endpoint} schema={schema} origins={form.allowedOrigins} />
     <div className="detail-grid">
       <section className="panel form-section detail-main">
@@ -59,6 +62,7 @@ export default async function FormDetailPage({ params }: { params: Promise<{ id:
       {form.submissions.length ? <div className="wide-table"><table><thead><tr>{columns.map((field) => <th key={field.id}>{field.labels.join(" / ")}</th>)}<th>Received</th><th>Enquiry</th></tr></thead><tbody>{form.submissions.map((submission) => { const data = submission.data as Record<string, unknown>; return <tr key={submission.id}>{columns.map((field) => <td key={field.id}>{valueLabel(data[field.id])}</td>)}<td><time>{submission.createdAt.toLocaleString("en", { dateStyle: "medium", timeStyle: "short" })}</time></td><td><Link className="text-link" href={`/submissions/${submission.id}`}>Open enquiry</Link></td></tr>; })}</tbody></table></div> : <div className="mini-empty"><p>No responses yet.</p><span>Use the endpoint above to send your first one.</span></div>}
     </section>
     {canAdmin && <section className="panel form-section"><div className="panel-header"><h2>Notifications and webhook</h2></div><FormConnections id={id} members={members.map(({ user }) => ({ name: user.name, email: user.email, verified: Boolean(user.emailVerifiedAt) }))} emails={form.notificationEmails} url={form.webhookUrl} hasSecret={Boolean(form.webhookSecret)} mailEnabled={mailConfigured()} />{deliveries.length > 0 && <div className="delivery-list"><h3>Recent deliveries</h3>{deliveries.map(job => <div key={job.id}><span>{job.kind.toLowerCase()}<small>{job.createdAt.toLocaleString("en", { dateStyle: "medium", timeStyle: "short" })}</small></span><span>{job.status.toLowerCase()}<small>{job.lastError}</small></span>{job.status === "FAILED" && <RetryDelivery id={job.id} />}</div>)}</div>}</section>}
+    {canAdmin && <section className="routing-section"><h2>Lead routing</h2><FormRouting id={id} updatedAt={form.updatedAt.toISOString()} mode={form.assignmentMode} defaultId={form.defaultAssigneeId} memberIds={form.assignmentMemberIds} minutes={form.unassignedAlertMinutes} members={assignees.map(member => member.user)} /></section>}
     <section className="panel form-section"><div className="panel-header"><div><p className="eyebrow">Contract</p><h2>Accepted fields</h2></div><Link className="text-link" href="https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API" target="_blank">Fetch API <ExternalLink size={13} /></Link></div><div className="schema-list">{schema.fields.map((field) => <div key={field.id}><code>{field.id}</code><span>{field.type}</span><small>{field.required ? "required" : "optional"}</small></div>)}</div></section>
   </div>;
 }

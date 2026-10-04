@@ -7,10 +7,10 @@ const resolver = new Resolver({ timeout: 2000, tries: 1 });
 
 export function mailConfigured() { return Boolean(process.env.RESEND_API_KEY && process.env.MAIL_FROM); }
 
-type Mail = { to: string; subject: string; text: string; tokenHash?: string };
+type Mail = { to: string; subject: string; text: string; tokenHash?: string; condition?: "unassigned"; conditionAt?: string };
 
-export function mailJob(to: string, subject: string, text: string, tokenHash?: string, formId?: string): Prisma.OutboundDeliveryCreateManyInput {
-  return { kind: "EMAIL", formId, payload: { encrypted: encrypt(JSON.stringify({ to, subject, text, tokenHash })) } };
+export function mailJob(to: string, subject: string, text: string, tokenHash?: string, formId?: string, condition?: "unassigned", conditionAt?: string): Prisma.OutboundDeliveryCreateManyInput {
+  return { kind: "EMAIL", formId, payload: { encrypted: encrypt(JSON.stringify({ to, subject, text, tokenHash, condition, conditionAt })) } };
 }
 
 async function sendWebhook(urlInput: string, body: string, signature: string, deliveryId: string) {
@@ -55,6 +55,7 @@ export async function processDeliveries(ids?: string[]) {
         let active = true;
         if (mail.tokenHash) active = Boolean(await db.accountToken.findFirst({ where: { tokenHash: mail.tokenHash, expiresAt: { gt: new Date() } } }) || await db.invitation.findFirst({ where: { tokenHash: mail.tokenHash, expiresAt: { gt: new Date() } } }));
         if (job.formId) active = Boolean(await db.form.findFirst({ where: { id: job.formId, notificationEmails: { has: mail.to }, organization: { members: { some: { user: { email: mail.to, emailVerifiedAt: { not: null } } } } } } }));
+        if (active && mail.condition === "unassigned") active = Boolean(job.submissionId && mail.conditionAt && await db.submission.findFirst({ where: { id: job.submissionId, assigneeId: null, status: "NEW", unassignedNotifiedAt: new Date(mail.conditionAt), form: { unassignedAlertMinutes: { gt: 0 } } } }));
         if (active) {
           if (!mailConfigured()) throw new Error("Email delivery is not configured.");
           const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json", "Idempotency-Key": job.id }, body: JSON.stringify({ from: process.env.MAIL_FROM, to: [mail.to], subject: mail.subject, text: mail.text }), signal: AbortSignal.timeout(8000) });

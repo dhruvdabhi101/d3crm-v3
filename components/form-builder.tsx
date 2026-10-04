@@ -9,6 +9,7 @@ import { buildDesignPrompt, parseAgentForm } from "@/lib/forms/agent";
 import { CopyButton } from "@/components/copy-button";
 import { FormPreview } from "@/components/form-preview";
 import { AgentKit } from "@/components/agent-kit";
+import { IntegrationWizard } from "@/components/integration-wizard";
 
 const initialFields: FormField[] = [
   { id: "name", label: "Full name", type: "text", required: true, maxLength: 120 },
@@ -46,7 +47,7 @@ export function FormBuilder({ baseUrl, initialMode = "manual", initialForm }: { 
   if (state.success && initialForm) return <section className="success-card"><h2>{state.success}</h2><Link className="button button-primary" href={`/forms/${initialForm.id}`}>Open form<ArrowRight size={15} /></Link></section>;
   if (state.created) {
     const endpoint = `${baseUrl}/api/v1/forms/${state.created.slug}/submissions`;
-    return <><section className="success-card"><span className="success-icon"><Check size={24} /></span><p className="eyebrow">Ready to connect</p><h2>Your form is ready.</h2><p>Your form is live. Copy the integration prompt below and give it to your coding agent to build the form on your website.</p><div className="secret-row"><code>{state.created.key}</code><CopyButton value={state.created.key} /></div><p className="quiet-note">This publishable key is shown only once. Save it before leaving.</p><div className="success-actions"><Link className="button button-primary" href={`/forms/${state.created.id}`}>Open form <ArrowRight size={15} /></Link><CopyButton value={endpoint} label="Copy endpoint" /></div></section><AgentKit name={state.created.name ?? name} endpoint={endpoint} schema={state.created.schema ?? schema} formKey={state.created.key} origins={state.created.allowedOrigins ?? []} /></>;
+    return <><section className="success-card"><span className="success-icon"><Check size={24} /></span><p className="eyebrow">Ready to connect</p><h2>Your form is ready.</h2><p>Your form is live. Copy the integration prompt below and give it to your coding agent to build the form on your website.</p><div className="secret-row"><code>{state.created.key}</code><CopyButton value={state.created.key} /></div><p className="quiet-note">This publishable key is shown only once. Save it before leaving.</p><div className="success-actions"><Link className="button button-primary" href={`/forms/${state.created.id}`}>Open form <ArrowRight size={15} /></Link><CopyButton value={endpoint} label="Copy endpoint" /></div></section><IntegrationWizard id={state.created.id} name={state.created.name ?? name} endpoint={endpoint} schema={state.created.schema ?? schema} initialKey={state.created.key} keyPrefix={state.created.key.slice(0, 12)} origins={state.created.allowedOrigins ?? []} checkedAt={null} latestAt={null} /><AgentKit name={state.created.name ?? name} endpoint={endpoint} schema={state.created.schema ?? schema} formKey={state.created.key} origins={state.created.allowedOrigins ?? []} /></>;
   }
 
   return <div className="builder-workspace"><div className="builder-editor"><div className="builder-modes segmented"><button type="button" aria-pressed={mode === "manual"} onClick={() => setMode("manual")}><Plus size={15} />Form editor</button><button type="button" aria-pressed={mode === "ai"} onClick={() => setMode("ai")}><Code2 size={15} />Build with AI</button></div>

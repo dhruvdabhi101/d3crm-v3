@@ -11,10 +11,26 @@ import { requireRole } from "@/lib/permissions";
 import { after } from "next/server";
 import { z } from "zod";
 import { mailConfigured, mailJob, processDeliveries } from "@/lib/deliveries";
-import { appUrl, randomToken, tokenHash } from "@/lib/security";
+import { appUrl, randomToken, tokenHash, RequestError } from "@/lib/security";
 import { rateLimit } from "@/lib/rate-limit";
+import { clientInput, createClientWorkspace } from "@/lib/workspaces";
 
 export type OrganizationActionState = { error?: string; success?: string };
+
+export async function createClient(_state: OrganizationActionState, formData: FormData): Promise<OrganizationActionState> {
+  const { organization, user } = await requireRole(Role.ADMIN);
+  try {
+    const input = clientInput(String(formData.get("name") ?? ""), String(formData.get("website") ?? ""));
+    await rateLimit("create-client", user.id, 10, 86400);
+    await db.$transaction(tx => createClientWorkspace(tx, user.id, organization.id, input));
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return { error: duplicateName };
+    if (error instanceof RequestError) return { error: error.message };
+    throw error;
+  }
+  revalidatePath("/", "layout");
+  return { success: "Client workspace created." };
+}
 
 export async function inviteMember(_state: OrganizationActionState, formData: FormData): Promise<OrganizationActionState> {
   const { organization, user } = await requireRole(Role.OWNER);
@@ -54,7 +70,7 @@ export async function removeMember(_state: OrganizationActionState, formData: Fo
     if (!actor) return false;
     const target = await tx.organizationMember.findFirst({ where: { id, organizationId: organization.id, role: { not: "OWNER" } } });
     if (!target) return false;
-    await tx.submission.updateMany({ where: { assigneeId: target.userId, form: { organizationId: organization.id } }, data: { assigneeId: null } });
+    await tx.submission.updateMany({ where: { assigneeId: target.userId, form: { organizationId: organization.id } }, data: { assigneeId: null, unassignedNotifiedAt: null } });
     await tx.organizationMember.delete({ where: { id } });
     await tx.activity.create({ data: { organizationId: organization.id, actorId: user.id, subjectId: target.userId, action: "member.removed" } });
     return true;
@@ -124,6 +140,7 @@ export async function addMember(_state: OrganizationActionState, formData: FormD
     select: { role: true },
   });
   if (existingMembership?.role === Role.OWNER) return { error: "Use Transfer ownership to change the owner." };
+  if (requestedRole === Role.VIEWER) await tx.submission.updateMany({ where: { assigneeId: user.id, form: { organizationId: organization.id } }, data: { assigneeId: null, unassignedNotifiedAt: null } });
   await tx.organizationMember.upsert({
     where: { userId_organizationId: { userId: user.id, organizationId: organization.id } },
     update: { role: requestedRole as Role },
@@ -178,5 +195,6 @@ export async function switchOrganization(formData: FormData) {
     path: "/",
     maxAge: 60 * 60 * 24 * 365,
   });
-  redirect("/dashboard");
+  const destination = String(formData.get("destination") ?? "");
+  redirect(["/settings", "/forms", "/reports"].includes(destination) ? destination : "/dashboard");
 }
