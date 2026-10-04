@@ -15,6 +15,8 @@ Headers: Content-Type: application/json and X-Form-Key: the publishable form key
 Send field IDs at the top level; do not wrap in data or schema. Numbers should be JSON numbers; checkboxes must be booleans. A required checkbox must be true. Omit blank optional fields. Add an off-screen, non-focusable _gotcha honeypot and send its value, normally empty.
 The form must be Live. Requests from browsers must match the configured origin allowlist when set. The key is publishable and does not grant dashboard access. Keys are only shown on creation/rotation.
 
+Optional campaign metadata goes in a separate top-level _context object: landing_page, referrer, utm_source, utm_medium, utm_campaign, utm_term, utm_content. Do not put it in the form schema or nest answers inside it. URLs must use HTTP/HTTPS, have no credentials, and be at most 2048 characters; stored URLs exclude query strings and fragments. UTM values are strings of at most 200 characters. Read campaign parameters from the current URL using URLSearchParams; omit missing values. Prefer location.origin + location.pathname for landing_page. Do not add cookies or storage tracking. Do not send personal data in URLs or campaign values. Invalid _context returns 422 with fields._context. Existing integrations may omit it. Metadata is included in webhook events and _context.* CSV columns.
+
 ## Responses and UX
 201: {ok:true,submission:{id,createdAt}}. 202: accepted.
 422: {error,fields}; fields maps IDs to validation errors.

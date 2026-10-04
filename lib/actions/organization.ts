@@ -29,14 +29,19 @@ export async function inviteMember(_state: OrganizationActionState, formData: Fo
   await db.$transaction(async tx => {
     await tx.invitation.upsert({ where: { organizationId_email: { organizationId: organization.id, email: email.data } }, create: { organizationId: organization.id, email: email.data, role, tokenHash: hashed, expiresAt }, update: { role, tokenHash: hashed, expiresAt } });
     await tx.outboundDelivery.create({ data: mailJob(email.data, `Join ${organization.name} on d3CRM`, `${user.name} invited you to ${organization.name} as ${role.toLowerCase()}.\n\nAccept your invitation:\n${appUrl()}/invitations?token=${token}\n\nThis link expires in 7 days.`, hashed) });
+    await tx.activity.create({ data: { organizationId: organization.id, actorId: user.id, action: "member.invited", details: { role } } });
   });
   after(async () => { await processDeliveries(); }); revalidatePath("/settings");
   return { success: "Invitation queued." };
 }
 
 export async function cancelInvitation(formData: FormData) {
-  const { organization } = await requireRole(Role.OWNER);
-  await db.invitation.deleteMany({ where: { id: String(formData.get("id")), organizationId: organization.id } });
+  const { organization, user } = await requireRole(Role.OWNER);
+  await db.$transaction(async tx => {
+    const id = String(formData.get("id"));
+    const removed = await tx.invitation.deleteMany({ where: { id, organizationId: organization.id } });
+    if (removed.count) await tx.activity.create({ data: { organizationId: organization.id, actorId: user.id, subjectId: id, action: "member.invitation_cancelled" } });
+  });
   revalidatePath("/settings");
 }
 
@@ -51,6 +56,7 @@ export async function removeMember(_state: OrganizationActionState, formData: Fo
     if (!target) return false;
     await tx.submission.updateMany({ where: { assigneeId: target.userId, form: { organizationId: organization.id } }, data: { assigneeId: null } });
     await tx.organizationMember.delete({ where: { id } });
+    await tx.activity.create({ data: { organizationId: organization.id, actorId: user.id, subjectId: target.userId, action: "member.removed" } });
     return true;
   });
   revalidatePath("/settings"); revalidatePath("/submissions");
@@ -73,6 +79,7 @@ export async function acceptInvitation(_state: OrganizationActionState, formData
     if (!consumed.count) return null;
     await tx.organizationMember.create({ data: { organizationId: invitation.organizationId, userId: user.id, role: invitation.role } });
     await tx.user.update({ where: { id: user.id }, data: { emailVerifiedAt: new Date() } });
+    await tx.activity.create({ data: { organizationId: invitation.organizationId, actorId: user.id, subjectId: user.id, action: "member.joined", details: { role: invitation.role } } });
     return invitation.organizationId;
   });
   if (!organizationId) return { error: "This invitation is invalid, expired, or belongs to another email address." };
@@ -83,11 +90,14 @@ export async function acceptInvitation(_state: OrganizationActionState, formData
 const duplicateName = "An organization with that name already exists.";
 
 export async function updateOrganization(_state: OrganizationActionState, formData: FormData): Promise<OrganizationActionState> {
-  const { organization } = await requireRole(Role.ADMIN);
+  const { organization, user } = await requireRole(Role.ADMIN);
   const name = String(formData.get("name") ?? "").trim();
   if (name.length < 2 || name.length > 100) return { error: "Use an organization name between 2 and 100 characters." };
   try {
-    await db.organization.update({ where: { id: organization.id }, data: { name } });
+    await db.$transaction(async tx => {
+      await tx.organization.update({ where: { id: organization.id }, data: { name } });
+      await tx.activity.create({ data: { organizationId: organization.id, actorId: user.id, subjectId: organization.id, action: "organization.renamed" } });
+    });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return { error: duplicateName };
     throw error;
@@ -119,6 +129,7 @@ export async function addMember(_state: OrganizationActionState, formData: FormD
     update: { role: requestedRole as Role },
     create: { userId: user.id, organizationId: organization.id, role: requestedRole as Role },
   });
+  await tx.activity.create({ data: { organizationId: organization.id, actorId: actor.id, subjectId: user.id, action: existingMembership ? "member.role_changed" : "member.joined", details: { previousRole: existingMembership?.role ?? null, role: requestedRole } } });
   return { success: existingMembership ? "Member role updated." : "Member added." };
   });
   revalidatePath("/settings");
@@ -137,6 +148,7 @@ export async function transferOwnership(_state: OrganizationActionState, formDat
       const current = await tx.organizationMember.updateMany({ where: { id: membership.id, organizationId: organization.id, role: Role.OWNER }, data: { role: Role.ADMIN } });
       if (!current.count) throw new Error("Ownership has changed. Refresh the page and try again.");
       await tx.organizationMember.update({ where: { id: target.id }, data: { role: Role.OWNER } });
+      await tx.activity.create({ data: { organizationId: organization.id, actorId: membership.userId, subjectId: target.userId, action: "organization.ownership_transferred" } });
     });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return { error: "Ownership has changed. Refresh the page and try again." };

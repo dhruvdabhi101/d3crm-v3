@@ -9,14 +9,16 @@ const items = [
   { href: "/dashboard", label: "Overview" },
   { href: "/forms", label: "Forms" },
   { href: "/submissions", label: "Submissions" },
+  { href: "/reports", label: "Reports" },
   { href: "/settings", label: "Settings" },
 ];
 
-export function AppNav({ name, email }: { name: string; email: string }) {
+export function AppNav({ name, email, canAdmin }: { name: string; email: string; canAdmin: boolean }) {
   const pathname = usePathname();
+  const navigation = canAdmin ? [...items.slice(0, -1), { href: "/activity", label: "Activity" }, items[items.length - 1]] : items;
   return <>
     <nav className="app-nav" aria-label="Primary navigation">
-      {items.map(({ href, label }) => {
+      {navigation.map(({ href, label }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return <Link className="nav-item" aria-current={active ? "page" : undefined} href={href} key={href}>{label}</Link>;
       })}

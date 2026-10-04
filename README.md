@@ -15,6 +15,8 @@ A deliberately small contact-form CRM: one Next.js application, PostgreSQL, Pris
 - Password recovery, email verification, expiring invitations, and member removal
 - Durable email alerts, follow-up reminders, and signed webhooks with retries and delivery history
 - Optional Stripe subscriptions, customer portal, and configurable plan limits
+- Enquiry timelines and owner/admin workspace activity for lead, form, and team changes
+- Optional campaign attribution and date/form-filtered lead reports
 
 ## Run locally
 
@@ -55,6 +57,30 @@ fetch("https://your-crm.example/api/v1/forms/FORM_SLUG/submissions", {
 
 The key identifies a form and is safe to embed in a browser, but it is not a secret: website visitors can inspect it. Origin checks and throttling reduce casual abuse; public production deployments should add an edge/WAF rate limiter for stronger abuse protection.
 
+### Campaign attribution
+
+Optionally send `_context` alongside the form fields:
+
+```js
+_context: {
+  landing_page: location.origin + location.pathname,
+  referrer: document.referrer || undefined,
+  utm_source: "google",
+  utm_medium: "cpc",
+  utm_campaign: "autumn-enquiries"
+}
+```
+
+The accepted keys are `landing_page`, `referrer`, `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, and `utm_content`. URLs must use HTTP/HTTPS, have no credentials, and be at most 2048 characters. Stored URLs exclude query strings and fragments. Campaign values are strings of at most 200 characters; source/medium are normalized to lowercase. Invalid metadata returns HTTP 422. Metadata is stored separately from answers, included in webhook events, and exported in `_context.*` CSV columns. Do not put personal information in campaign values or page paths. Existing clients without `_context` keep working; attribution is not retroactively reconstructed. The generated integration examples and AI handoff prompt include this optional payload. No cookies or persistent cross-page attribution are added.
+
+### Reports and activity
+
+Reports are available to all workspace members, filtered by enquiry creation date (inclusive UTC dates, up to 366 days) and optional form. They show current lead statuses for that cohort, spam-excluded enquiry/won counts, lead-to-won rate, overdue follow-ups, and daily/form/source breakdowns. Source means reported `utm_source`, otherwise the existing browser origin, otherwise `Unknown`; it is not independently verified traffic attribution. Form/source tables show the top 50 groups. These are not visitor conversion or advertising ROI reports.
+
+Average first marked contacted measures the first explicit transition to `CONTACTED`; it does not measure an actual email or phone call. The sample count is displayed. Older enquiries have no invented contact timestamp or activity backfill. Historical leads already marked contacted remain unmeasured unless explicitly moved back to another status and later contacted.
+
+Owners/admins can browse workspace activity; enquiry timelines are visible wherever enquiry read access is allowed. Lead, note, form, and team mutations record events in their database transactions. Export requests are logged before streaming starts; an event does not prove the download completed. Events contain actor IDs and change metadata, not form answers, note bodies, publishable keys, invitation tokens, or webhook secrets. Deleting an enquiry removes its answers, notes, and deliveries but retains activity with a detached reference. Activity currently remains until workspace deletion; there is no automatic retention policy. Configure an appropriate retention process before promising specific customer data-erasure guarantees.
+
 ## Permissions
 
 | Role | Read/export | Create/change forms | Organization details | Manage members |
@@ -92,7 +118,7 @@ Deploy behind HTTPS with a strong `NEXTAUTH_SECRET`, run `pnpm build` (which app
 
 ## Local Workflow Verification
 
-For isolated checks, create a local database named `d3crm_security_test` and a git-ignored `.env.test` with its `DATABASE_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, and `CRON_SECRET`. Apply migrations with that local URL explicitly set. Start the app with those same variables (the normal `.env` may point to a hosted database). `pnpm test:integration` refuses non-local databases and non-test database names; it creates and removes only its own fixtures. It checks workspace isolation, token replay/expiry, session invalidation, parallel throttling, request limits, historical CSV exports, delivery retries/claims, SSRF rejection, billing signatures, and quotas. Email provider requests are mocked; no real emails or charges are sent. To seed disposable preview data, run `node --env-file=.env.test --experimental-strip-types scripts/seed-demo.ts`.
+For isolated checks, create a local database named `d3crm_security_test` and a git-ignored `.env.test` with its `DATABASE_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, and `CRON_SECRET`. Apply migrations with that local URL explicitly set. Start the app with those same variables (the normal `.env` may point to a hosted database). `pnpm test:integration` refuses non-local databases and non-test database names; it creates and removes only its own fixtures. It checks workspace isolation, token replay/expiry, session invalidation, parallel throttling, request limits, historical CSV exports, delivery retries/claims, SSRF rejection, billing signatures, quotas, attribution validation, transactional activity, concurrent lead edits, and scoped reporting. Email provider requests are mocked; no real emails or charges are sent. To seed disposable preview data, run `node --env-file=.env.test --experimental-strip-types scripts/seed-demo.ts`.
 
 ## Checks
 

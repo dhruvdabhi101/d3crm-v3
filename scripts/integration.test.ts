@@ -7,6 +7,8 @@ import { decrypt, encrypt, randomToken, tokenHash } from "../lib/security.ts";
 import { mailJob, processDeliveries } from "../lib/deliveries.ts";
 import { checkQuota, verifyStripeSignature } from "../lib/billing.ts";
 import { webhookSignature } from "../lib/security.ts";
+import { addLeadNote, removeLead, saveLead } from "../lib/lead-workflow.ts";
+import { leadReport, reportRange } from "../lib/reports.ts";
 
 const base = process.env.NEXTAUTH_URL!;
 const url = new URL(process.env.DATABASE_URL!);
@@ -61,21 +63,58 @@ try {
   assert.equal((await submit({ ...payload, _gotcha: "bot" })).status, 202);
   assert.equal(await db.submission.count({ where: { formId: form.id } }), 0);
   assert.equal((await submit({ ...payload, message: "x".repeat(70_000) })).status, 413);
-  const accepted = await submit(payload); assert.equal(accepted.status, 201);
+  assert.equal((await submit({ ...payload, _context: { landing_page: "javascript:alert(1)" } })).status, 422);
+  const accepted = await submit({ ...payload, _context: { landing_page: "https://allowed.example/contact?token=private&utm_source=Google", utm_source: "Google", utm_medium: "CPC", utm_campaign: "Studio launch" } }); assert.equal(accepted.status, 201);
   const lead = (await accepted.json()).submission;
   const saved = await db.submission.findUniqueOrThrow({ where: { id: lead.id } });
   assert.deepEqual(saved.schemaSnapshot, schema);
+  assert.deepEqual(saved.attribution, { landing_page: "https://allowed.example/contact", utm_source: "google", utm_medium: "cpc", utm_campaign: "Studio launch" });
+  assert.equal(await db.activity.count({ where: { submissionId: lead.id, action: "lead.created" } }), 1);
+  assert.ok(!Object.keys(saved.data as object).includes("_context"));
   assert.equal(await db.outboundDelivery.count({ where: { submissionId: lead.id } }), 1);
   console.log("PASS submission validation, origins, honeypot, payload limits, durable alerts");
 
+  const state = { status: "CONTACTED" as const, assigneeId: owner.user.id, followUpAt: new Date(Date.now() - 86400_000), updatedAt: saved.updatedAt, unread: false };
+  await assert.rejects(() => db.$transaction(tx => saveLead(tx, outsider.organizationId, outsider.user.id, lead.id, state)), { status: 404 });
+  const changes = await Promise.allSettled([db.$transaction(tx => saveLead(tx, owner.organizationId, owner.user.id, lead.id, state)), db.$transaction(tx => saveLead(tx, owner.organizationId, owner.user.id, lead.id, state))]);
+  assert.equal(changes.filter(change => change.status === "fulfilled").length, 1);
+  const contacted = await db.submission.findUniqueOrThrow({ where: { id: lead.id } });
+  assert.ok(contacted.firstContactedAt);
+  assert.equal(await db.activity.count({ where: { submissionId: lead.id, action: "lead.updated" } }), 1);
+  await db.$transaction(tx => saveLead(tx, owner.organizationId, owner.user.id, lead.id, { ...state, status: "WON", updatedAt: contacted.updatedAt }));
+  assert.equal((await db.submission.findUniqueOrThrow({ where: { id: lead.id } })).firstContactedAt!.getTime(), contacted.firstContactedAt.getTime());
+  await db.$transaction(tx => addLeadNote(tx, owner.organizationId, owner.user.id, lead.id, "Private note must stay out of audit metadata."));
+  const activity = await db.activity.findMany({ where: { submissionId: lead.id } });
+  assert.ok(!JSON.stringify(activity).includes("Private note") && !JSON.stringify(activity).includes("lead@example.test"));
+  const range = reportRange();
+  const report = await leadReport(owner.organizationId, range);
+  assert.equal(report.totals.total, 1); assert.equal(report.totals.won, 1); assert.equal(report.totals.contacted, 1);
+  assert.equal(report.sources[0].source, "google"); assert.equal(report.forms[0].id, form.id);
+  assert.equal((await leadReport(outsider.organizationId, range, form.id)).totals.total, 0);
+  const viewer = await fixture("Viewer", "VIEWER", owner.organizationId); const viewerClient = new Client();
+  await viewerClient.login(viewer.user.email, "IntegrationPassword2026!");
+  const viewerActivity = await viewerClient.fetch("/activity"); const viewerActivityBody = await viewerActivity.text();
+  assert.ok(viewerActivity.status === 307 || viewerActivityBody.includes("NEXT_REDIRECT;replace;/dashboard;307;"));
+  assert.ok(!viewerActivityBody.includes("Enquiry received"));
+  assert.equal((await viewerClient.fetch("/reports")).status, 200);
+  assert.equal((await outsiderClient.fetch(`/reports?form=${form.id}`)).status, 200);
+  const outsideActivity = await outsiderClient.fetch("/activity");
+  assert.ok(!(await outsideActivity.text()).includes("Enquiry received"));
+  const reportPage = await ownerClient.fetch("/reports"); assert.equal(reportPage.status, 200); assert.ok((await reportPage.text()).includes("google"));
+  console.log("PASS atomic activity history, contact timestamps, tenant-scoped reports and audit permissions");
+
   await db.form.update({ where: { id: form.id }, data: { schema: { version: 1, fields: [{ id: "company", label: "Company", type: "text", required: true }] }, schemaVersion: { increment: 1 } } });
   const oldDetail = await ownerClient.fetch(`/submissions/${lead.id}`); assert.equal(oldDetail.status, 200); assert.ok((await oldDetail.text()).includes("Original name"));
+  const formPage = await ownerClient.fetch(`/forms/${form.id}`); const formBody = await formPage.text(); assert.ok(formBody.includes("Original name") && formBody.includes("Test enquiry"));
+  const dashboard = await ownerClient.fetch("/dashboard"); assert.ok((await dashboard.text()).includes(`/submissions/${lead.id}`));
   const deniedDetail = await outsiderClient.fetch(`/submissions/${lead.id}`);
   const deniedBody = await deniedDetail.text();
   assert.ok(deniedBody.includes("This page could not be found."));
   assert.ok(!deniedBody.includes("Original name") && !deniedBody.includes("Test enquiry"));
   assert.equal((await outsiderClient.fetch(`/api/forms/${form.id}/export`)).status, 404);
   const exported = await ownerClient.fetch(`/api/forms/${form.id}/export`); assert.equal(exported.status, 200); const csv = await exported.text(); assert.ok(csv.includes('"name"')); assert.ok(csv.includes('"company"')); assert.ok(csv.includes("'=HYPERLINK"));
+  assert.ok(csv.includes('"_context.utm_source"') && csv.includes('"google"'));
+  assert.equal(await db.activity.count({ where: { organizationId: owner.organizationId, action: "form.exported" } }), 1);
   assert.equal((await anonymous.fetch("/submissions")).status, 307);
   console.log("PASS workspace isolation, historical schemas, safe CSV exports");
 
@@ -102,9 +141,11 @@ try {
 
   const workerClient = new Client();
   assert.equal((await workerClient.post("/api/jobs/deliveries", {})).status, 401);
-  await db.submission.delete({ where: { id: lead.id } });
+  await db.$transaction(tx => removeLead(tx, owner.organizationId, owner.user.id, lead.id));
   assert.equal(await db.outboundDelivery.count({ where: { submissionId: lead.id } }), 0);
   assert.equal((await db.organization.findUniqueOrThrow({ where: { id: owner.organizationId } })).monthlySubmissions, 1);
+  assert.equal(await db.activity.count({ where: { organizationId: owner.organizationId, action: "lead.deleted", subjectId: lead.id, submissionId: null } }), 1);
+  assert.equal(await db.activity.count({ where: { organizationId: owner.organizationId, subjectId: lead.id, submissionId: null } }), 5);
   console.log("PASS worker authentication and deletion of queued enquiry data");
 
   const originalFetch = globalThis.fetch;

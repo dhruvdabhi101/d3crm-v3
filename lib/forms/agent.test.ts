@@ -17,6 +17,8 @@ test("handoff includes exact schema and endpoint, actual key only when available
   assert.ok(prompt.includes("https://website.test"));
   assert.ok(prompt.includes("422"));
   assert.ok(prompt.includes("_gotcha"));
+  assert.ok(prompt.includes("_context"));
+  assert.ok(prompt.includes("utm_campaign"));
   assert.ok(buildIntegrationPrompt({ ...config, key: "d3f_example" }).includes('"X-Form-Key": "d3f_example"'));
   assert.ok(buildDesignPrompt("A waitlist").includes("A waitlist"));
 });

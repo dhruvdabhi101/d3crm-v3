@@ -30,12 +30,16 @@ function formInput(formData: FormData) {
 }
 
 export async function updateForm(id: string, _state: FormActionState, formData: FormData): Promise<FormActionState> {
-  const { organization } = await requireRole(Role.ADMIN);
+  const { organization, user } = await requireRole(Role.ADMIN);
   let input;
   try { input = formInput(formData); } catch (error) { return { error: error instanceof Error ? error.message : "Check your form." }; }
   const schemaVersion = Number(formData.get("schemaVersion"));
   if (!Number.isInteger(schemaVersion) || schemaVersion < 1) return { error: "Reload the form and try again." };
-  const result = await db.form.updateMany({ where: { id, organizationId: organization.id, schemaVersion }, data: { ...input, schemaVersion: { increment: 1 } } });
+  const result = await db.$transaction(async tx => {
+    const changed = await tx.form.updateMany({ where: { id, organizationId: organization.id, schemaVersion }, data: { ...input, schemaVersion: { increment: 1 } } });
+    if (changed.count) await tx.activity.create({ data: { organizationId: organization.id, actorId: user.id, subjectId: id, action: "form.updated", details: { schemaVersion: schemaVersion + 1 } } });
+    return changed;
+  });
   if (!result.count) return { error: "This form was changed or removed. Reload before editing again." };
   revalidatePath(`/forms/${id}`); revalidatePath("/forms");
   return { success: "Form updated." };
@@ -55,7 +59,11 @@ export async function updateFormConnections(id: string, _state: ConnectionState,
   let url: string | null = null;
   try { const value = String(formData.get("webhookUrl") ?? "").trim(); url = value ? webhookUrl(value) : null; } catch { return { error: "Use a public HTTPS webhook URL on port 443." }; }
   const key = url && (!form.webhookSecret || form.webhookUrl !== url || formData.get("rotateSecret") === "on") ? randomToken() : null;
-  const changed = await db.form.updateMany({ where: { id, organizationId: organization.id, updatedAt: form.updatedAt }, data: { notificationEmails: emails, webhookUrl: url, webhookSecret: url ? key ? encrypt(key) : form.webhookSecret : null } });
+  const changed = await db.$transaction(async tx => {
+    const result = await tx.form.updateMany({ where: { id, organizationId: organization.id, updatedAt: form.updatedAt }, data: { notificationEmails: emails, webhookUrl: url, webhookSecret: url ? key ? encrypt(key) : form.webhookSecret : null } });
+    if (result.count) await tx.activity.create({ data: { organizationId: organization.id, actorId: user.id, subjectId: id, action: "form.connections_changed", details: { recipientCount: emails.length, webhookEnabled: Boolean(url), secretRotated: Boolean(key) } } });
+    return result;
+  });
   if (!changed.count) return { error: "The form changed. Reload before saving again." };
   revalidatePath(`/forms/${id}`);
   return { success: "Connections saved.", ...(key ? { secret: key } : {}) };
@@ -73,14 +81,16 @@ export async function createForm(_state: FormActionState, formData: FormData): P
   let created;
   try { created = await db.$transaction(async tx => {
     await checkQuota(tx, organization.id, "forms");
-    return tx.form.create({ data: { ...input, slug, keyPrefix: key.prefix, keyHash: key.hash, organizationId: organization.id } });
+    const form = await tx.form.create({ data: { ...input, slug, keyPrefix: key.prefix, keyHash: key.hash, organizationId: organization.id } });
+    await tx.activity.create({ data: { organizationId: organization.id, actorId: user.id, subjectId: form.id, action: "form.created" } });
+    return form;
   }); } catch (error) { if (error instanceof RequestError) return { error: error.message }; throw error; }
   revalidatePath("/forms");
   return { created: { id: created.id, slug: created.slug, key: key.key, name: created.name, schema, allowedOrigins: created.allowedOrigins } };
 }
 
 export async function updateFormStatus(_state: FormActionState, formData: FormData): Promise<FormActionState> {
-  const { organization } = await requireRole(Role.ADMIN);
+  const { organization, user } = await requireRole(Role.ADMIN);
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "") as FormStatus;
   if (!Object.values(FormStatus).includes(status)) return { error: "Invalid form status." };
@@ -90,6 +100,7 @@ export async function updateFormStatus(_state: FormActionState, formData: FormDa
     if (!form) throw new RequestError("Form not found.", 404);
     if (form.status === "ARCHIVED" && status !== "ARCHIVED") await checkQuota(tx, organization.id, "forms");
     await tx.form.update({ where: { id }, data: { status } });
+    if (form.status !== status) await tx.activity.create({ data: { organizationId: organization.id, actorId: user.id, subjectId: id, action: "form.status_changed", details: { previousStatus: form.status, status } } });
   }); } catch (error) { if (error instanceof RequestError) return { error: error.message }; throw error; }
   revalidatePath(`/forms/${id}`);
   revalidatePath("/forms");
@@ -97,10 +108,14 @@ export async function updateFormStatus(_state: FormActionState, formData: FormDa
 }
 
 export async function rotateFormKey(_state: FormActionState, formData: FormData): Promise<FormActionState> {
-  const { organization } = await requireRole(Role.ADMIN);
+  const { organization, user } = await requireRole(Role.ADMIN);
   const id = String(formData.get("id") ?? "");
   const key = createFormKey();
-  const result = await db.form.updateMany({ where: { id, organizationId: organization.id }, data: { keyPrefix: key.prefix, keyHash: key.hash } });
+  const result = await db.$transaction(async tx => {
+    const changed = await tx.form.updateMany({ where: { id, organizationId: organization.id }, data: { keyPrefix: key.prefix, keyHash: key.hash } });
+    if (changed.count) await tx.activity.create({ data: { organizationId: organization.id, actorId: user.id, subjectId: id, action: "form.key_rotated" } });
+    return changed;
+  });
   if (!result.count) throw new Error("Form not found.");
   revalidatePath(`/forms/${id}`);
   return { created: { id, slug: "", key: key.key } };

@@ -17,5 +17,18 @@ try {
   if (!await db.submission.count({ where: { formId: form.id } })) {
     await db.submission.createMany({ data: Array.from({ length: 32 }, (_, index) => ({ formId: form.id, schemaSnapshot: schema, data: { name: ["Alex Morgan", "Priya Shah", "Sam Patel", "Jordan Lee"][index % 4], email: `enquiry${index + 1}@example.test`, message: index === 0 ? "We need a website for our new studio. Can you share your availability and a quote?" : `Enquiry ${index + 1}: Please share details about your services.` }, status: index % 5 === 0 ? "CONTACTED" : "NEW", createdAt: new Date(Date.now() - index * 3600_000) })) });
   }
+  const reportingKey = createFormKey();
+  const reportingForm = await db.form.upsert({ where: { slug: "demo-reporting" }, update: {}, create: { name: "Campaign enquiries", slug: "demo-reporting", organizationId: org.id, schema, keyPrefix: reportingKey.prefix, keyHash: reportingKey.hash } });
+  if (!await db.submission.count({ where: { formId: reportingForm.id } })) {
+    const owner = await db.user.findUniqueOrThrow({ where: { email: "owner@example.test" } });
+    for (const [index, status] of (["WON", "QUALIFIED", "CONTACTED", "NEW", "LOST", "SPAM"] as const).entries()) {
+      const createdAt = new Date(Date.now() - (index + 1) * 86400_000);
+      await db.$transaction(async tx => {
+        const lead = await tx.submission.create({ data: { formId: reportingForm.id, schemaSnapshot: schema, data: { name: `Demo prospect ${index + 1}`, email: `campaign${index + 1}@example.test`, message: "Demo enquiry about a website project." }, attribution: { landing_page: "https://demo.example.test/contact", utm_source: index % 2 ? "linkedin" : "google", utm_medium: "paid", utm_campaign: "Studio launch" }, status, createdAt, assigneeId: owner.id, followUpAt: status === "QUALIFIED" ? new Date(Date.now() - 86400_000) : null, firstContactedAt: ["WON", "CONTACTED", "QUALIFIED"].includes(status) ? new Date(createdAt.getTime() + 2 * 3600_000) : null } });
+        await tx.activity.create({ data: { organizationId: org.id, submissionId: lead.id, subjectId: lead.id, action: "lead.created", createdAt } });
+        if (status !== "NEW") await tx.activity.create({ data: { organizationId: org.id, actorId: owner.id, submissionId: lead.id, subjectId: lead.id, action: "lead.updated", createdAt: new Date(createdAt.getTime() + 2 * 3600_000), details: { previousStatus: "NEW", status } } });
+      });
+    }
+  }
   console.log("Local demo ready: owner@example.test / DemoPassword2026!");
 } finally { await db.$disconnect(); }

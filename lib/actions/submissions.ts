@@ -5,10 +5,12 @@ import { db } from "@/lib/db";
 import { requireRole } from "@/lib/permissions";
 import { LEAD_STATUSES } from "@/lib/leads";
 import { rateLimit } from "@/lib/rate-limit";
+import { addLeadNote, removeLead, saveLead } from "@/lib/lead-workflow";
+import { RequestError } from "@/lib/security";
 
 export type SubmissionState = { error?: string; success?: string };
 export async function updateSubmission(id: string, _state: SubmissionState, formData: FormData): Promise<SubmissionState> {
-  const { organization } = await requireRole(Role.MEMBER);
+  const { organization, user } = await requireRole(Role.MEMBER);
   const status = String(formData.get("status"));
   if (!LEAD_STATUSES.includes(status as typeof LEAD_STATUSES[number])) return { error: "Choose a valid status." };
   const assigneeId = String(formData.get("assigneeId") ?? "") || null;
@@ -18,9 +20,8 @@ export async function updateSubmission(id: string, _state: SubmissionState, form
   if (date && (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !followUpAt || isNaN(followUpAt.getTime()) || followUpAt.toISOString().slice(0, 10) !== date)) return { error: "Choose a valid follow-up date." };
   const updatedAt = new Date(String(formData.get("updatedAt")));
   if (isNaN(updatedAt.getTime())) return { error: "Reload the enquiry and try again." };
-  const previous = await db.submission.findFirst({ where: { id, form: { organizationId: organization.id } }, select: { followUpAt: true } });
-  const result = await db.submission.updateMany({ where: { id, form: { organizationId: organization.id }, updatedAt }, data: { status: status as typeof LEAD_STATUSES[number], assigneeId, followUpAt, ...(previous?.followUpAt?.getTime() !== followUpAt?.getTime() ? { followUpNotifiedAt: null } : {}), readAt: formData.get("unread") === "on" ? null : new Date() } });
-  if (!result.count) return { error: "This enquiry changed or was removed. Reload before saving." };
+  try { await db.$transaction(tx => saveLead(tx, organization.id, user.id, id, { status: status as typeof LEAD_STATUSES[number], assigneeId, followUpAt, updatedAt, unread: formData.get("unread") === "on" })); }
+  catch (error) { if (error instanceof RequestError) return { error: error.message }; throw error; }
   revalidatePath(`/submissions/${id}`); revalidatePath("/submissions"); revalidatePath("/dashboard");
   return { success: "Enquiry updated." };
 }
@@ -30,15 +31,14 @@ export async function addSubmissionNote(id: string, _state: SubmissionState, for
   const body = String(formData.get("body") ?? "").trim();
   if (!body || body.length > 5000) return { error: "Use between 1 and 5,000 characters." };
   await rateLimit("lead-note", user.id, 60, 3600);
-  const submission = await db.submission.findFirst({ where: { id, form: { organizationId: organization.id } }, select: { id: true } });
-  if (!submission) return { error: "Enquiry not found." };
-  await db.submissionNote.create({ data: { submissionId: id, authorId: user.id, body } });
+  try { await db.$transaction(tx => addLeadNote(tx, organization.id, user.id, id, body)); }
+  catch (error) { if (error instanceof RequestError) return { error: error.message }; throw error; }
   revalidatePath(`/submissions/${id}`);
   return { success: "Note added." };
 }
 
 export async function deleteSubmission(id: string) {
-  const { organization } = await requireRole(Role.ADMIN);
-  await db.submission.deleteMany({ where: { id, form: { organizationId: organization.id } } });
+  const { organization, user } = await requireRole(Role.ADMIN);
+  await db.$transaction(tx => removeLead(tx, organization.id, user.id, id));
   revalidatePath("/submissions"); revalidatePath("/dashboard");
 }

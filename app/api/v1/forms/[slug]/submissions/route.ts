@@ -7,6 +7,7 @@ import { leadEmail, mailJob, processDeliveries } from "@/lib/deliveries";
 import { rateLimit } from "@/lib/rate-limit";
 import { readJson, requestIp, RequestError } from "@/lib/security";
 import { checkQuota } from "@/lib/billing";
+import { submissionInput } from "@/lib/forms/attribution";
 
 function corsHeaders(origin: string | null) {
   return {
@@ -49,7 +50,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ ok: true }, { status: 202, headers });
   }
 
-  const validated = validateSubmission(form.schema, body);
+  let input;
+  try { input = submissionInput(body); } catch (error) { return NextResponse.json({ error: "Validation failed.", fields: { _context: error instanceof Error ? error.message : "Invalid context." } }, { status: 422, headers }); }
+  const validated = validateSubmission(form.schema, input.data);
   if (!validated.success) return NextResponse.json({ error: "Validation failed.", fields: validated.errors }, { status: 422, headers });
 
   const { submission, deliveryIds } = await db.$transaction(async tx => {
@@ -59,16 +62,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       formId: form.id,
       data: validated.data,
       schemaSnapshot: form.schema as Prisma.InputJsonValue,
+      attribution: input.attribution,
       sourceOrigin: origin,
       userAgent: request.headers.get("user-agent")?.slice(0, 500),
       ipHash: hashIp(ip),
     },
     select: { id: true, createdAt: true },
   });
+  await tx.activity.create({ data: { organizationId: form.organizationId, submissionId: submission.id, subjectId: submission.id, action: "lead.created" } });
   const recipients = await tx.organizationMember.findMany({ where: { organizationId: form.organizationId, user: { email: { in: form.notificationEmails }, emailVerifiedAt: { not: null } } }, select: { user: { select: { email: true } } } });
   const email = leadEmail(form.name, submission.id);
   const jobs: Prisma.OutboundDeliveryCreateManyInput[] = recipients.map(({ user }) => ({ ...mailJob(user.email, email.subject, email.text, undefined, form.id), submissionId: submission.id }));
-  if (form.webhookUrl && form.webhookSecret) jobs.push({ kind: "WEBHOOK", formId: form.id, submissionId: submission.id, payload: { url: form.webhookUrl, event: { id: submission.id, type: "submission.created", createdAt: submission.createdAt.toISOString(), form: { id: form.id, name: form.name, slug: form.slug }, data: validated.data } } });
+  if (form.webhookUrl && form.webhookSecret) jobs.push({ kind: "WEBHOOK", formId: form.id, submissionId: submission.id, payload: { url: form.webhookUrl, event: { id: submission.id, type: "submission.created", createdAt: submission.createdAt.toISOString(), form: { id: form.id, name: form.name, slug: form.slug }, data: validated.data, attribution: input.attribution } } });
   const created = jobs.length ? await tx.outboundDelivery.createManyAndReturn({ data: jobs, select: { id: true } }) : [];
   return { submission, deliveryIds: created.map(job => job.id) };
   });

@@ -20,6 +20,7 @@ model User {
   tokens              AccountToken[]
   assignedSubmissions Submission[]
   notes               SubmissionNote[]
+  activities          Activity[]
 }
 
 model Organization {
@@ -39,6 +40,7 @@ model Organization {
   subscriptionStatus   String?
   usageMonth           DateTime             @default(now())
   monthlySubmissions   Int                  @default(0)
+  activities           Activity[]
 }
 
 model OrganizationMember {
@@ -87,10 +89,13 @@ model Submission {
   assigneeId         String?
   followUpAt         DateTime?
   followUpNotifiedAt DateTime?
+  firstContactedAt   DateTime?
+  attribution        Json?              @db.JsonB
   updatedAt          DateTime           @default(now()) @updatedAt
   assignee           User?              @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
   notes              SubmissionNote[]
   deliveries         OutboundDelivery[]
+  activities         Activity[]
   sourceOrigin       String?
   userAgent          String?
   ipHash             String?
@@ -112,6 +117,23 @@ model SubmissionNote {
   submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   author       User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
+  @@index([submissionId, createdAt])
+}
+
+model Activity {
+  id             String       @id @default(cuid())
+  organizationId String
+  actorId        String?
+  submissionId   String?
+  action         String
+  subjectId      String?
+  details        Json         @default("{}") @db.JsonB
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor          User?        @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  submission     Submission?  @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt, id])
   @@index([submissionId, createdAt])
 }
 
