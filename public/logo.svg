@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="103" height="29" viewBox="0 0 103 29">
-  <rect width="29" height="29" rx="8" fill="#252521"/>
-  <text x="14.5" y="20" text-anchor="middle" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" letter-spacing="-1">d3</text>
-  <text x="38" y="21" fill="#252521" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="700" letter-spacing="-1">CRM</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="124" height="29" viewBox="0 0 124 29">
+  <rect width="29" height="29" rx="7" fill="#087f72"/>
+  <path d="M8 8h9a4 4 0 0 1 0 8h-5m-4-4h9m-9 9h9a4 4 0 0 0 0-8" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+  <text x="36" y="21" fill="#202927" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="700">d3CRM</text>
 </svg>

@@ -1,32 +1,22 @@
 import Link from "next/link";
-import { ArrowRight, Code2, Inbox, ShieldCheck } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, ArrowUpRight, CalendarDays, Check, Code2, Inbox, Layers3, ShieldCheck, Users } from "lucide-react";
 import { Brand } from "@/components/brand";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export default function Home() {
-  return (
-    <main className="landing">
-      <header className="landing-header">
-        <Brand href="/" />
-        <nav aria-label="Main navigation">
-          <Link href="/sign-in">Sign in</Link>
-          <Link className="button button-primary" href="/sign-up">Get started <ArrowRight size={15} /></Link>
-        </nav>
-      </header>
-      <section className="landing-hero">
-        <p className="eyebrow">Website forms, without the busywork</p>
-        <h1>A quiet place for every <em>hello.</em></h1>
-        <p>Create forms for your website, collect submissions, and keep every conversation in one thoughtful inbox.</p>
-        <Link className="button button-primary" href="/sign-up">Create your workspace <ArrowRight size={16} /></Link>
-      </section>
-      <section className="landing-features" aria-label="What you can do">
-        <article><Code2 size={21} strokeWidth={1.5} /><h2>Build your form</h2><p>Start with a template or use your favorite AI agent to shape the fields you need.</p></article>
-        <article><Inbox size={21} strokeWidth={1.5} /><h2>Keep it together</h2><p>See submissions across your forms in one inbox, with CSV export when you need it.</p></article>
-        <article><ShieldCheck size={21} strokeWidth={1.5} /><h2>Stay in control</h2><p>Manage your team, choose allowed website origins, and rotate form keys at any time.</p></article>
-      </section>
-      <footer className="landing-footer"><Brand href="/" /><span>Your forms. Your website. Your workflow.</span></footer>
-    </main>
-  );
+  return <main className="product-site">
+    <header className="site-header"><Brand href="/" /><nav aria-label="Main navigation"><a href="#product">Product</a><a href="#agencies">For agencies</a><Link href="/demo">Live demo <ArrowUpRight size={13} /></Link></nav><div className="site-account"><Link href="/sign-in">Sign in</Link><Link className="button button-primary" href="/sign-up">Get started <ArrowRight size={15} /></Link></div></header>
+    <section className="product-hero" aria-labelledby="product-title">
+      <div className="hero-copy"><p className="eyebrow"><span className="live-dot" />THE ENQUIRY WORKSPACE</p><h1 id="product-title">d3CRM</h1><p className="hero-line">Every enquiry. A clear next step.</p><p className="hero-description">Website forms, a shared inbox, and follow-ups. <br />One connected workflow for you and your clients.</p><div className="hero-actions"><Link className="button button-primary" href="/sign-up">Create your workspace <ArrowRight size={16} /></Link><Link className="button button-secondary" href="/demo">Explore the demo <ArrowUpRight size={16} /></Link></div></div>
+      <Link href="/demo" className="hero-product" aria-label="Explore the d3CRM product demo"><Image src="/product-workspace.jpg" alt="d3CRM inbox showing fictional agency enquiries, their status and assigned teammates" width={1280} height={800} priority sizes="(max-width: 620px) calc(100vw - 32px), (max-width: 1160px) calc(100vw - 80px), 1080px" /></Link>
+    </section>
+    <section className="site-workflow" id="product"><div className="site-section-heading"><p className="eyebrow">FROM FIRST HELLO TO NEXT STEP</p><h2>A better flow for your work.</h2><p>Keep the context, share the responsibility, and move every enquiry forward.</p></div><div className="workflow-columns"><article><span className="workflow-number">01</span><Code2 size={24} /><h3>Connect your website</h3><p>Build a form, use a template, or connect your existing site with an integration snippet.</p></article><article><span className="workflow-number">02</span><Inbox size={24} /><h3>Work from one inbox</h3><p>Search, assign, and qualify enquiries. Switch to a pipeline when you need the bigger picture.</p></article><article><span className="workflow-number">03</span><CalendarDays size={24} /><h3>Keep things moving</h3><p>Schedule follow-ups, prepare replies, and track where your best enquiries come from.</p></article></div></section>
+    <section className="site-agencies" id="agencies"><div className="agency-heading"><p className="eyebrow">BUILT FOR SMALL TEAMS</p><h2>Your clients.<br />Their own workspace.</h2><p>A home for every website you look after. Give each client a separate workspace without scattering your team&apos;s workflow.</p><Link className="text-link" href="/demo">Take a look inside <ArrowUpRight size={17} /></Link></div><div className="agency-capabilities"><article><Layers3 size={22} /><div><h3>Separate by client</h3><p>Switch between workspaces. Keep forms, enquiries, and team access separate.</p></div></article><article><Users size={22} /><div><h3>Share the right access</h3><p>Invite your team and clients with owner, admin, member, or viewer permissions.</p></div></article><article><ShieldCheck size={22} /><div><h3>Stay in control</h3><p>Allowed website origins, rotatable form keys, and an activity history for your workspace.</p></div></article></div></section>
+    <section className="site-faq"><div className="site-section-heading"><p className="eyebrow">A FEW GOOD QUESTIONS</p><h2>Before you get started.</h2></div><div className="faq-items"><details><summary>Does this replace my website?</summary><p>No. d3CRM connects to the website you already have. You can use an integration snippet or the form submission API.</p></details><details><summary>Can I try it without creating an account?</summary><p>Yes. The <Link href="/demo">interactive demo</Link> uses fictional enquiries. Changes stay in the current page and reset when you reload.</p></details><details><summary>Can my clients have their own access?</summary><p>Yes. Create a client workspace and invite the people who need it. Each workspace has its own forms, enquiries, and permissions.</p></details><details><summary>Does d3CRM send replies to my leads?</summary><p>The reply composer prepares a personalised draft. You can copy it or open it in your email app. Replies are not automatically sent.</p></details></div></section>
+    <section className="site-final"><p className="eyebrow">LESS SCATTERED. MORE CONNECTED.</p><h2>Make room for your next project.</h2><Link className="button button-primary" href="/sign-up">Get started with d3CRM <ArrowRight size={16} /></Link><span><Check size={14} />Your website stays yours.</span></section>
+    <footer className="site-footer"><Brand href="/" /><span>From enquiry to opportunity.</span><nav aria-label="Footer"><Link href="/demo">Demo</Link><Link href="/sign-in">Sign in</Link><a href="#product">Product</a></nav></footer>
+  </main>;
 }

@@ -1,6 +1,8 @@
 import { Brand } from "@/components/brand";
 import { AppNav } from "@/components/app-nav";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import { WorkspaceSearch } from "@/components/workspace-search";
+import { WorkspaceHeader } from "@/components/workspace-header";
 
 export function AppShell({ children, organizationId, organizations, user, canAdmin }: {
   children: React.ReactNode;
@@ -11,10 +13,14 @@ export function AppShell({ children, organizationId, organizations, user, canAdm
 }) {
   return <div className="app-frame">
     <a className="skip-link" href="#main-content">Skip to content</a>
-    <header className="app-toolbar"><div className="toolbar-inner">
-      <div className="workspace-identity"><Brand /><span className="identity-divider" aria-hidden>/</span><WorkspaceSwitcher currentId={organizationId} organizations={organizations} /></div>
+    <aside className="workspace-sidebar" aria-label="Workspace">
+      <div className="sidebar-brand"><Brand /></div>
+      <WorkspaceSwitcher currentId={organizationId} organizations={organizations} />
+      <WorkspaceSearch key={organizationId} canAdmin={canAdmin} />
       <AppNav name={user.name} email={user.email} canAdmin={canAdmin} />
-    </div></header>
-    <main id="main-content" className="main-content">{children}</main>
+    </aside>
+    <div className="workspace-body"><WorkspaceHeader name={user.name} />
+      <main id="main-content" className="main-content">{children}</main>
+    </div>
   </div>;
 }

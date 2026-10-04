@@ -261,9 +261,9 @@ try {
   await assert.rejects(() => db.$transaction(tx => removeInboxView(tx, owner.organizationId, viewer.user.id, privateView.id)), { status: 404 });
   const viewerView = await db.$transaction(tx => saveInboxView(tx, owner.organizationId, viewer.user.id, "Viewer priorities", {}));
   const ownerInbox = await ownerClient.fetch(`/submissions?form=${batchForm.id}`); const ownerInboxHtml = await ownerInbox.text();
-  assert.ok(ownerInboxHtml.includes("Agency priorities") && !ownerInboxHtml.includes("Viewer priorities") && ownerInboxHtml.includes("Bulk enquiry updates") && ownerInboxHtml.includes("Page <!-- -->1<!-- --> of <!-- -->2"));
+  assert.ok(ownerInboxHtml.includes("Agency priorities") && !ownerInboxHtml.includes("Viewer priorities") && ownerInboxHtml.includes("Select all enquiries on this page") && !ownerInboxHtml.includes("Bulk enquiry updates") && ownerInboxHtml.includes("Page <!-- -->1<!-- --> of <!-- -->2"));
   const viewerInbox = await viewerClient.fetch(`/submissions?form=${batchForm.id}`); const viewerInboxHtml = await viewerInbox.text();
-  assert.ok(viewerInboxHtml.includes("Viewer priorities") && !viewerInboxHtml.includes("Agency priorities") && !viewerInboxHtml.includes("Bulk enquiry updates"));
+  assert.ok(viewerInboxHtml.includes("Viewer priorities") && !viewerInboxHtml.includes("Agency priorities") && !viewerInboxHtml.includes("Select all enquiries on this page") && !viewerInboxHtml.includes("Bulk enquiry updates"));
   const outsiderInbox = await outsiderClient.fetch(`/submissions?form=${batchForm.id}&layout=board`); const outsiderInboxHtml = await outsiderInbox.text();
   assert.ok(!outsiderInboxHtml.includes("Batch enquiry") && !outsiderInboxHtml.includes("Agency priorities"));
   const pipeline = await ownerClient.fetch(`/submissions?form=${batchForm.id}&layout=board`); const pipelineHtml = await pipeline.text();
@@ -418,6 +418,23 @@ try {
   assert.equal(await db.submissionNote.count({ where: { submissionId: agendaLead.id } }), 0);
   assert.equal(await db.activity.count({ where: { submissionId: agendaLead.id } }), 2);
   console.log("PASS UTC follow-up buckets, scoped counts/pagination, viewers, stale reschedules and revoked note/delete access");
+
+  const search = await ownerClient.fetch(`/api/search?q=${encodeURIComponent("Agenda contact")}`);
+  assert.equal(search.status, 200); assert.equal(search.headers.get("cache-control"), "private, no-store");
+  const searchResults = (await search.json()).results;
+  assert.equal(searchResults.length, 10);
+  assert.ok(searchResults.every((result: { kind: string; title: string; href: string }) => result.kind === "enquiry" && result.title.startsWith("Agenda contact") && result.href.startsWith("/submissions/")));
+  assert.deepEqual((await (await outsiderClient.fetch("/api/search?q=Agenda%20contact")).json()).results, []);
+  assert.equal((await anonymous.fetch("/api/search?q=Agenda")).status, 401);
+  assert.equal((await viewerClient.fetch("/api/search?q=Agenda%20contact")).status, 200);
+  const formSearch = (await (await ownerClient.fetch("/api/search?q=Agenda%20enquiries")).json()).results;
+  assert.ok(formSearch.some((result: { kind: string; href: string }) => result.kind === "form" && result.href === `/forms/${agendaForm.id}`));
+  for (const query of ["a", "%", "x".repeat(121)]) assert.deepEqual((await (await ownerClient.fetch(`/api/search?q=${encodeURIComponent(query)}`)).json()).results, []);
+  assert.deepEqual((await (await ownerClient.fetch("/api/search?q=%25%25")).json()).results, [], "Search wildcards must be treated literally");
+  const publicDemo = await anonymous.fetch("/demo"); assert.equal(publicDemo.status, 200); assert.ok((await publicDemo.text()).includes("Fieldwork Studio"));
+  await db.user.update({ where: { id: viewer.user.id }, data: { sessionVersion: { increment: 1 } } });
+  assert.equal((await viewerClient.fetch("/api/search?q=Agenda")).status, 401);
+  console.log("PASS authenticated bounded workspace search, tenant isolation, viewers, expired sessions and public fictional demo");
 
   const originalFetch = globalThis.fetch;
   process.env.RESEND_API_KEY = "test-only"; process.env.MAIL_FROM = "test@example.test";

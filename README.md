@@ -25,6 +25,14 @@ A deliberately small contact-form CRM: one Next.js application, PostgreSQL, Pris
 - Safe form duplication with new publishable keys and separate draft configuration
 - A UTC follow-up agenda with period/assignee filters and quick rescheduling
 
+### Product identity and discovery
+
+The public site, authentication screens, and workspace share a teal-and-neutral identity, system typography, accessible focus states, and reduced-motion/transparency fallbacks. The workspace uses a desktop sidebar and a collapsible mobile menu. Inbox filters disclose on demand; active filters remain expanded. Bulk controls appear only after selection.
+
+- `/demo` is a public, interactive fictional workspace. Search, status filtering, pipeline moves, assignments, follow-up edits, overview, and reset work entirely in page-local React state. It never reads customer data, sends email, or writes a database or browser storage. Reload resets it. The public product image is a screenshot of this demo, not customer data.
+- Workspace search supports mouse, Tab, arrow keys, Enter, and Cmd/Ctrl+K. `GET /api/search` verifies authentication/session version and derives scope from current membership. It returns at most five forms and ten enquiries, treats SQL wildcards literally, rate-limits queries, and uses private/no-store responses. Short or oversized queries return no results.
+- Overview shows the last seven UTC calendar days, zero-fills missing days, excludes spam from the chart, and links to the matching report range. No database schema or environment changes are required.
+
 ## Run locally
 
 ```bash
