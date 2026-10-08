@@ -19,6 +19,7 @@ export function campaignUrl(input: string, campaign: CampaignInput) {
 
 export const launchChecklist = [
   { title: "Fields match the website", detail: "Confirm field IDs, types, and required values match the controls on your website." },
+  { title: "Privacy notice and collection basis are in place", detail: "Publish the collecting business’s own privacy notice beside the form. Explain fields, purposes, d3CRM processing, recipients, retention, and rights. Obtain and record consent where required; keep optional marketing separate. Use dummy data until international-transfer safeguards are agreed." },
   { title: "The form is live", detail: "Check the current publishable key and replace any older key in the website snippet." },
   { title: "Website origins are correct", detail: "Allow the actual protocol and host, including www if used. Test on the production website." },
   { title: "The endpoint passes test mode", detail: "Run the generated test handler on the website. This validates the connection without creating a lead." },
