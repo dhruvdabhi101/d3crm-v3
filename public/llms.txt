@@ -16,6 +16,15 @@
 
 Reply drafts are reviewed and sent in the user's email app, not automatically sent by d3CRM. Follow-up dates use UTC. Campaign reports describe submitted enquiry context, not visitor analytics. Optional notifications, webhooks, and billing depend on deployment configuration. Do not infer pricing, certifications, customer counts, or capabilities absent from the public pages.
 
+## Privacy and legal documents
+
+- [Privacy Policy](/privacy): Actual account/workspace data flows, providers, retention, and privacy rights.
+- [Terms of Service](/terms): Service agreement, customer responsibilities, subscriptions, and mandatory-rights protections.
+- [Data Processing Agreement](/data-processing): Customer instructions and processor duties; restricted transfers need separately completed safeguards.
+- [Account Data Notice](/account-data-notice): Specific account fields, purposes, consent withdrawal, and contact route.
+
+Connected websites must publish the collecting business's own privacy notice and preserve any required consent. The d3CRM policy is not that business's collection notice. Keep optional marketing separate; do not assume that a generated form establishes a lawful processing ground. Do not import regulated international data until the required transfer arrangements are in place.
+
 ## Form integration guide for AI agents
 
 Use the form-specific integration prompt from the d3CRM dashboard as the source of truth for the endpoint, schema, allowed origins, and publishable key. Never guess credentials or endpoints.

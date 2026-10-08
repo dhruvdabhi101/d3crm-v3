@@ -40,4 +40,4 @@ export const guides = [
   },
 ] as const;
 
-export const publicPaths = ["/", "/demo", "/features", "/guides", ...guides.map(guide => `/guides/${guide.slug}`), "/tools", "/tools/campaign-url-builder", "/tools/form-launch-checklist"];
+export const publicPaths = ["/", "/demo", "/features", "/guides", ...guides.map(guide => `/guides/${guide.slug}`), "/tools", "/tools/campaign-url-builder", "/tools/form-launch-checklist", "/privacy", "/terms", "/data-processing", "/account-data-notice"];

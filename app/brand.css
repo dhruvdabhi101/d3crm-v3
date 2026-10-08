@@ -545,6 +545,19 @@ kbd { font-family: inherit; border: 1px solid var(--line); border-radius: 4px; p
 .resource-section { margin-top: 40px; max-width: 780px; scroll-margin-top: 24px; }
 .resource-section h2 { font-size: 1.5rem; font-weight: 550; line-height: 1.35; }
 .resource-section p { font-size: .9375rem; line-height: 1.85; color: var(--muted); }
+.legal-document ul { padding-left: 24px; color: var(--muted); font-size: .9375rem; line-height: 1.85; }
+.legal-document li { margin: 12px 0; }
+.legal-document address { white-space: pre-line; font-style: normal; color: var(--muted); overflow-wrap: anywhere; }
+.legal-document a { overflow-wrap: anywhere; }
+.legal-date { margin-top: 16px; font-size: .8125rem; color: var(--muted); }
+.legal-nav { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 24px 0; font-size: .875rem; }
+.legal-nav a, .legal-signup-note a, .legal-check a, .auth-foot a { text-decoration: underline; text-underline-offset: 3px; }
+.legal-availability { padding: 16px; background: var(--accent-soft); border-radius: 8px; line-height: 1.7; }
+.legal-check { display: flex; align-items: flex-start; gap: 10px; }
+.legal-check > [data-slot="checkbox"] { margin-top: 3px; }
+.legal-check label { display: block; font-size: .75rem; line-height: 1.7; font-weight: 400; }
+.legal-signup-note { font-size: .75rem; line-height: 1.7; color: var(--muted); }
+.site-footer nav { flex-wrap: wrap; }
 .resource-section a, .guide-contents a, .breadcrumbs a { color: var(--accent-strong); text-decoration: underline; text-underline-offset: 3px; }
 .guide-article { max-width: 780px; margin: auto; }
 .breadcrumbs { display: flex; flex-wrap: wrap; gap: 8px; color: var(--muted); font-size: .75rem; margin-bottom: 36px; }

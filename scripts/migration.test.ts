@@ -50,6 +50,7 @@ try {
   assert.equal(sql(`SELECT count(*) FROM "Submission" WHERE id IN ('malformed-contact','text-contact','ambiguous-contact','object-contact') AND "contactEmail" IS NULL`).trim(), "4");
   assert.equal(sql(`SELECT "contactEmail" FROM "Submission" WHERE id='first-contact'`).trim(), "first@example.test");
   assert.equal(sql(`SELECT count(*) FROM "ReplyTemplate"`).trim(), "0");
+  assert.equal(sql(`SELECT "termsAcceptedAt" IS NULL AND "termsVersion" IS NULL AND "accountConsentAt" IS NULL AND "accountNoticeVersion" IS NULL FROM "User" WHERE id='legacy-owner'`).trim(), "t");
   console.log("Passed: existing enquiries, schema snapshots, safe contact backfills, defaults, and monthly usage survive all migrations.");
 } finally {
   sql(`DROP DATABASE "${database}"`, "postgres");

@@ -208,6 +208,12 @@ Bulk and pipeline changes use an authenticated, same-origin, size-limited JSON e
 
 ## Checks
 
+### Privacy and service agreements
+
+Public legal pages are `/privacy`, `/terms`, `/data-processing`, and `/account-data-notice`. Signup requires separate unchecked terms and account-data choices, validated on the server and recorded with the document version and timestamp. Existing users receive no invented acceptance. Set the six public `LEGAL_*` values in `.env.example` before opening production registration; both the signup screen and API keep it closed until the operator, contact, infrastructure, and location disclosures are complete.
+
+Read [the privacy handover](docs/privacy-readiness.md) for current primary sources, DPDP commencement phases, provider/transfer agreements, request handling, deletion/retention gaps, and release prerequisites. The policies do not certify compliance; customers need their own collection notices and lawful grounds. This change is pushed on `codex/privacy-and-terms`, whose Vercel automatic deployments are disabled in `vercel.json`.
+
 ```bash
 pnpm test
 pnpm typecheck
