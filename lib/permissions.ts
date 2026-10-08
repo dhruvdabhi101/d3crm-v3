@@ -7,6 +7,16 @@ import { db } from "@/lib/db";
 
 const rank: Record<Role, number> = { VIEWER: 0, MEMBER: 1, ADMIN: 2, OWNER: 3 };
 
+export async function redirectSignedInUser() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return;
+  const user = await db.user.findFirst({
+    where: { id: session.user.id, sessionVersion: session.user.sessionVersion, memberships: { some: {} } },
+    select: { id: true },
+  });
+  if (user) redirect("/dashboard");
+}
+
 export async function getCurrentContext() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/sign-in");

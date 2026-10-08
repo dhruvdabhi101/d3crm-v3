@@ -60,6 +60,13 @@ try {
   const ownerClient = new Client(); const outsiderClient = new Client(); const anonymous = new Client();
   await ownerClient.login(owner.user.email, "IntegrationPassword2026!");
   await outsiderClient.login(outsider.user.email, "IntegrationPassword2026!");
+  for (const path of ["/sign-in", "/sign-up"]) {
+    assert.equal((await anonymous.fetch(path)).status, 200);
+    const response = await ownerClient.fetch(path);
+    assert.equal(response.status, 307);
+    assert.equal(response.headers.get("location"), "/dashboard");
+  }
+  console.log("PASS guest authentication pages and signed-in dashboard redirects");
   const key = createFormKey();
   const schema = { version: 1, fields: [{ id: "name", label: "Original name", type: "text", required: true }, { id: "email", label: "Email", type: "email", required: true }, { id: "message", label: "Message", type: "textarea", required: true, maxLength: 1000 }] };
   const form = await db.form.create({ data: { name: "Integration enquiries", slug: `integration-${suffix}`, organizationId: owner.organizationId, schema, keyHash: key.hash, keyPrefix: key.prefix, notificationEmails: [owner.user.email], allowedOrigins: ["https://allowed.example"] } });
@@ -434,6 +441,9 @@ try {
   const publicDemo = await anonymous.fetch("/demo"); assert.equal(publicDemo.status, 200); assert.ok((await publicDemo.text()).includes("Fieldwork Studio"));
   await db.user.update({ where: { id: viewer.user.id }, data: { sessionVersion: { increment: 1 } } });
   assert.equal((await viewerClient.fetch("/api/search?q=Agenda")).status, 401);
+  for (const path of ["/sign-in", "/sign-up"]) {
+    assert.equal((await viewerClient.fetch(path)).status, 200, "Revoked sessions must reach authentication forms without a redirect loop");
+  }
   console.log("PASS authenticated bounded workspace search, tenant isolation, viewers, expired sessions and public fictional demo");
 
   const originalFetch = globalThis.fetch;
