@@ -1,9 +1,11 @@
 import type { MetadataRoute } from "next";
+import { siteUrl } from "@/lib/site/seo";
 
 export default function robots(): MetadataRoute.Robots {
-  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
   return {
-    rules: { userAgent: "*", allow: "/", disallow: ["/api/", "/dashboard", "/forms", "/submissions", "/settings", "/sign-in", "/sign-up"] },
-    sitemap: new URL("/sitemap.xml", base).toString(),
+    // Search crawlers, including OAI-SearchBot, inherit the public-site policy.
+    // Account pages remain crawlable so their noindex metadata can be read.
+    rules: { userAgent: "*", allow: "/", disallow: ["/api/", "/dashboard", "/forms", "/submissions", "/settings", "/reports", "/activity", "/clients", "/templates", "/follow-ups"] },
+    sitemap: new URL("/sitemap.xml", siteUrl).href,
   };
 }

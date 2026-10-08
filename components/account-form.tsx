@@ -1,4 +1,10 @@
 "use client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
 import { ArrowRight, Mail } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
@@ -16,9 +22,9 @@ export function AccountForm({ action, token = "" }: { action: "reset-request" | 
   }
   const label = action === "reset-request" ? "Send reset link" : action === "reset-password" ? "Change password" : action === "verify-email" ? "Verify email" : "Send verification email";
   return <form onSubmit={submit} className="auth-form">
-    {action === "reset-request" && <label className="field"><span>Email</span><input name="email" type="email" autoComplete="email" required maxLength={254} /></label>}
-    {action === "reset-password" && <label className="field"><span>New password</span><input name="password" type="password" autoComplete="new-password" required minLength={8} maxLength={72} /><small>At least 8 characters; at most 72 bytes.</small></label>}
-    {error && <p className="form-error" role="alert">{error}</p>}
-    {message ? <><p className="form-success" role="status">{message}</p><Link className="text-link" href={action === "verify-email" ? "/settings" : "/sign-in"}>{action === "verify-email" ? "Open settings" : "Back to sign in"}<ArrowRight size={15} /></Link></> : <button className="button button-primary" disabled={pending || ((action === "verify-email" || action === "reset-password") && !token)}>{action.includes("request") && <Mail size={16} />}{pending ? "Please wait…" : label}</button>}
+    {action === "reset-request" && <Label className="field"><span>Email</span><Input name="email" type="email" autoComplete="email" required maxLength={254} /></Label>}
+    {action === "reset-password" && <Label className="field"><span>New password</span><Input name="password" type="password" autoComplete="new-password" required minLength={8} maxLength={72} /><small>At least 8 characters; at most 72 bytes.</small></Label>}
+    {error && <Alert variant="destructive" className="form-error" role="alert"><AlertDescription>{error}</AlertDescription></Alert>}
+    {message ? <><Alert className="form-success" role="status"><AlertDescription>{message}</AlertDescription></Alert><Link className="text-link" href={action === "verify-email" ? "/settings" : "/sign-in"}>{action === "verify-email" ? "Open settings" : "Back to sign in"}<ArrowRight size={15} /></Link></> : <Button variant="default" className="button button-primary" disabled={pending || ((action === "verify-email" || action === "reset-password") && !token)}>{action.includes("request") && <Mail size={16} />}{pending ? "Please wait…" : label}</Button>}
   </form>;
 }

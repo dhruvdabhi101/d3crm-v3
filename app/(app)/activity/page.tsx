@@ -1,3 +1,7 @@
+
+import { Label } from "@/components/ui/label";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { Button } from "@/components/ui/button";
 import { Role } from "@prisma/client";
 import { ChevronLeft, ChevronRight, Filter } from "lucide-react";
 import Link from "next/link";
@@ -17,7 +21,7 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
   const entries = await db.activity.findMany({ where, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 30, skip: (page - 1) * 30, include: { actor: { select: { name: true } } } });
   const href = (target: number) => `/activity?${new URLSearchParams({ category, page: String(target) })}`;
   return <div className="page"><PageHeader title="Activity" description={`${count.toLocaleString()} events · ${organization.name}`} />
-    <form className="activity-filters" method="get"><label className="field"><span>Category</span><select name="category" defaultValue={category}><option value="">All activity</option><option value="lead">Enquiries</option><option value="form">Forms</option><option value="member">Team</option><option value="organization">Workspace</option></select></label><button className="button button-secondary"><Filter size={15} />Apply</button></form>
+    <form className="activity-filters" method="get"><Label className="field"><span>Category</span><NativeSelect aria-label="Category" name="category" defaultValue={category}><NativeSelectOption value="">All activity</NativeSelectOption><NativeSelectOption value="lead">Enquiries</NativeSelectOption><NativeSelectOption value="form">Forms</NativeSelectOption><NativeSelectOption value="member">Team</NativeSelectOption><NativeSelectOption value="organization">Workspace</NativeSelectOption></NativeSelect></Label><Button variant="outline" className="button button-secondary"><Filter size={15} />Apply</Button></form>
     <ol className="activity-list">{entries.map(entry => <li key={entry.id}><div><strong>{activityLabel(entry)}</strong><span>{entry.actor?.name ?? (["lead.created", "form.connection_checked", "lead.auto_assigned"].includes(entry.action) ? "Website" : "Former team member")}{entry.submissionId && <> · <Link className="text-link" href={`/submissions/${entry.submissionId}`}>Open enquiry</Link></>}</span></div><time>{entry.createdAt.toLocaleString("en", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" })} UTC</time></li>)}</ol>
     {!entries.length && <p className="quiet-note">No activity recorded.</p>}
     <nav className="pagination" aria-label="Activity pages">{page > 1 ? <Link className="icon-button" href={href(page - 1)} aria-label="Previous page"><ChevronLeft size={18} /></Link> : <span />}<span>Page {page} of {pages}</span>{page < pages ? <Link className="icon-button" href={href(page + 1)} aria-label="Next page"><ChevronRight size={18} /></Link> : <span />}</nav>

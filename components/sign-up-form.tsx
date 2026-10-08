@@ -1,4 +1,9 @@
 "use client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 import { ArrowRight } from "lucide-react";
 import { signIn } from "next-auth/react";
@@ -19,5 +24,5 @@ export default function SignUpForm() {
       await signIn("credentials", { email: data.email, password: data.password, callbackUrl: callbackPath(window.location.search) });
     } catch { setError("Could not connect. Try again."); setPending(false); }
   }
-  return <section className="auth-card"><div className="auth-heading"><p className="eyebrow">GET STARTED</p><h1>Create your workspace.</h1><p>Your private workspace is created automatically.</p></div><form onSubmit={submit} className="auth-form"><div className="two-fields"><label className="field"><span>Your name</span><input name="name" autoComplete="name" required minLength={2} maxLength={80} /></label><label className="field"><span>Organization</span><input name="organization" autoComplete="organization" required minLength={2} maxLength={100} /></label></div><label className="field"><span>Email</span><input name="email" type="email" autoComplete="email" required /></label><label className="field"><span>Password</span><input name="password" type="password" autoComplete="new-password" required minLength={8} maxLength={128} /><small>At least 8 characters.</small></label>{error && <p className="form-error" role="alert">{error}</p>}<button className="button button-primary button-wide" disabled={pending}>{pending ? "Creating workspace…" : <>Create workspace <ArrowRight size={16} /></>}</button></form><p className="auth-switch">Already have an account? <Link href="/sign-in">Sign in</Link></p></section>;
+  return <section className="auth-card"><div className="auth-heading"><p className="eyebrow">GET STARTED</p><h1>Create your workspace.</h1><p>Your private workspace is created automatically.</p></div><form onSubmit={submit} className="auth-form"><div className="two-fields"><Label className="field"><span>Your name</span><Input name="name" autoComplete="name" required minLength={2} maxLength={80} /></Label><Label className="field"><span>Organization</span><Input name="organization" autoComplete="organization" required minLength={2} maxLength={100} /></Label></div><Label className="field"><span>Email</span><Input name="email" type="email" autoComplete="email" required /></Label><Label className="field"><span>Password</span><Input name="password" type="password" autoComplete="new-password" required minLength={8} maxLength={128} /><small>At least 8 characters.</small></Label>{error && <Alert variant="destructive" className="form-error" role="alert"><AlertDescription>{error}</AlertDescription></Alert>}<Button variant="default" className="button button-primary button-wide" disabled={pending}>{pending ? "Creating workspace…" : <>Create workspace <ArrowRight size={16} /></>}</Button></form><p className="auth-switch">Already have an account? <Link href="/sign-in">Sign in</Link></p></section>;
 }

@@ -227,3 +227,26 @@ With the Docker Compose PostgreSQL container running, `pnpm test:migrations` cre
 Existing form pages also provide integration prompts and schema JSON. Their prompts use a key placeholder because saved keys cannot be retrieved; provide your saved publishable key to the agent. General agent documentation is available at `/llms.txt`.
 
 AI generation runs in the user's chosen agent. The application validates and imports its JSON; it does not make model API calls or require an AI provider key.
+
+### Public SEO and free tools
+
+The public site includes `/features`, `/guides`, three implementation-specific guides, `/tools`, a campaign URL builder, and a form launch checklist. All ten public pages are in `sitemap.xml`, linked from the public navigation/content, and rendered with route-specific canonical URLs, descriptions, and social metadata. Organization, website, software, article, and guide breadcrumb JSON-LD describe actual functionality; there are no invented ratings, prices, or testimonials. `/llms.txt` links to public resources and retains the form integration contract.
+
+- The campaign builder validates HTTP(S) URLs without credentials, replaces existing UTM tags, lowercases source/medium, preserves unrelated query parameters/fragments, and limits tags and output length. It processes entered values in the browser and does not install tracking, persist tags across pages, or send them to a service.
+- The launch checklist supports progress, reset, copy, printable output, and a text fallback. Checkmarks are page-local and reset on reload; it does not inspect websites or certify that checks passed.
+- Authentication pages declare `noindex` and remain crawlable so crawlers can read it. Authenticated workspaces also declare `noindex`; robots excludes app routes and APIs. Membership checks remain the actual customer-data access control.
+
+Before public deployment, set the existing `NEXTAUTH_URL` to the real HTTPS site origin. The same origin feeds canonical URLs, social URLs, schema, and the sitemap; localhost is only the development fallback. Preview deployments should have platform-level access protection or a noindex policy. Confirm the public host returns HTTP 200 for the public pages, `/robots.txt`, `/sitemap.xml`, and `/llms.txt`; check that CDN/WAF rules permit legitimate search crawlers including OAI-SearchBot. Deployments still require the existing strong `NEXTAUTH_SECRET` and database configuration. Public resource pages require no additional environment variables, services, or migrations.
+
+After deployment, submit the sitemap in the site's existing search webmaster accounts if available and inspect canonical/indexing status. Rankings and AI citations are not guaranteed. Google's [AI search guidance](https://developers.google.com/search/docs/fundamentals/ai-optimization-guide) recommends ordinary crawlability, useful content, and clear site structure, and says Google does not use `llms.txt` for ranking. OpenAI's [crawler documentation](https://developers.openai.com/api/docs/bots) describes OAI-SearchBot access for ChatGPT search; access permission is not a promise of inclusion. No special AI schema or external SEO service is required.
+
+Validation: `pnpm typecheck`, `pnpm lint`, `pnpm test`, and `pnpm exec next build` (with the existing deployment environment configured). The focused site checks cover campaign edge cases, public resource coverage, guide links, metadata, and JSON-LD escaping.
+
+
+### Interface system
+
+The public site, account screens, and CRM share shadcn/ui components (Radix primitives), Tailwind CSS 4, and the d3CRM enquiry-desk identity. `components.json` records the registry configuration. Add future controls with `pnpm dlx shadcn@latest add <component>` and use the existing components rather than introducing another control style. Design tokens live in `app/brand.css` and map to Tailwind in `app/ui.css`; domain-specific layouts remain in `app/globals.css`.
+
+Warm paper surfaces, teal primary actions, clear status badges, and editorial serif accents distinguish the product. Workspace navigation groups daily work, workspace tools, and management. Public navigation keeps resources in a menu. Keyboard search, mobile sheets, confirmations, and tooltips use accessible Radix behavior. Frequent work has no entry animation; motion and translucency respect system accessibility preferences.
+
+`pnpm test:ui` runs the browser regression checks against an already-running local server. Supply `DATABASE_URL`, `NEXTAUTH_URL`, and `NEXTAUTH_SECRET` for an isolated local database whose name ends in `_test`; the suite refuses remote databases. Apply existing migrations and install Chromium with `pnpm exec playwright install chromium` first. Fixtures are created and cleaned up by the suite. Checks cover authentication, every work screen, keyboard search, mobile navigation, collapsed form values, bulk selection, routing, and confirmation cancellation. Use the same environment for the server and tests. Production data is never a test fixture.

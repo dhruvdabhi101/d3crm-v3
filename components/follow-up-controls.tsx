@@ -1,4 +1,11 @@
 "use client";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 import { createContext, useContext, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { CalendarX2, LoaderCircle, Save } from "lucide-react";
@@ -44,10 +51,10 @@ export function FollowUpControls({ id, date, updatedAt }: { id: string; date: st
   }
   return <form onSubmit={submit} className="follow-up-controls" aria-busy={pending}>
     <input type="hidden" name="updatedAt" value={loadedVersion} />
-    <label className="field"><span className="sr-only">Follow-up date (UTC)</span><input name="followUpAt" type="date" value={draftDate} onChange={event => { setDraftDate(event.target.value); setDirty(true); }} disabled={pending} aria-label="Follow-up date (UTC)" /></label>
-    <button className="icon-button" type="submit" name="intent" value="save" title="Save follow-up date" aria-label={pending ? "Saving follow-up date" : "Save follow-up date"} disabled={pending}>{pending ? <LoaderCircle size={17} aria-hidden className="loading-icon" /> : <Save size={17} aria-hidden />}</button>
-    <button className="icon-button" type="submit" name="intent" value="clear" title="Clear follow-up" aria-label="Clear follow-up" disabled={pending} formNoValidate><CalendarX2 size={17} aria-hidden /></button>
-    {state.error && <p className="form-error follow-up-feedback" role="alert">{state.error}</p>}
-    {state.success && !announce && !dirty && !pending && <p className="form-success follow-up-feedback" role="status">{state.success}</p>}
+    <Label className="field"><span className="sr-only">Follow-up date (UTC)</span><Input name="followUpAt" type="date" value={draftDate} onChange={event => { setDraftDate(event.target.value); setDirty(true); }} disabled={pending} aria-label="Follow-up date (UTC)" /></Label>
+    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="icon-button" type="submit" name="intent" value="save" aria-label={pending ? "Saving follow-up date" : "Save follow-up date"} disabled={pending}>{pending ? <LoaderCircle size={17} aria-hidden className="loading-icon" /> : <Save size={17} aria-hidden />}</Button></TooltipTrigger><TooltipContent>{"Save follow-up date"}</TooltipContent></Tooltip>
+    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="icon-button" type="submit" name="intent" value="clear" aria-label="Clear follow-up" disabled={pending} formNoValidate><CalendarX2 size={17} aria-hidden /></Button></TooltipTrigger><TooltipContent>{"Clear follow-up"}</TooltipContent></Tooltip>
+    {state.error && <Alert variant="destructive" className="form-error follow-up-feedback" role="alert"><AlertDescription>{state.error}</AlertDescription></Alert>}
+    {state.success && !announce && !dirty && !pending && <Alert className="form-success follow-up-feedback" role="status"><AlertDescription>{state.success}</AlertDescription></Alert>}
   </form>;
 }

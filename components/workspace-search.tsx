@@ -1,23 +1,24 @@
 "use client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Command, CommandInput, CommandList, CommandGroup, CommandItem } from "@/components/ui/command";
+import { Button } from "@/components/ui/button";
 
-import { useEffect, useRef, useState } from "react";
-import { ArrowUpRight, CalendarDays, FileInput, Inbox, LayoutDashboard, Plus, Search, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowUpRight, CalendarDays, FileInput, Inbox, LayoutDashboard, Plus, Search } from "lucide-react";
 import type { SearchResult } from "@/lib/workspace-search";
 
 export function WorkspaceSearch({ canAdmin }: { canAdmin: boolean }) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  const input = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const show = () => { dialog.current?.showModal(); setOpen(true); input.current?.focus(); };
   useEffect(() => {
     const handle = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        if (dialog.current?.open) dialog.current.close(); else { dialog.current?.showModal(); setOpen(true); input.current?.focus(); }
+        setOpen(current => !current);
+        setQuery("");
       }
     };
     document.addEventListener("keydown", handle);
@@ -47,17 +48,21 @@ export function WorkspaceSearch({ canAdmin }: { canAdmin: boolean }) {
     ...(canAdmin ? [{ title: "Create form", href: "/forms/new", icon: Plus }] : []),
   ];
   return <>
-    <button className="workspace-search-trigger" onClick={show} aria-label="Search workspace"><Search size={17} /><span className="search-label">Search workspace</span><span className="search-mobile-label" aria-hidden>Search</span></button>
-    <dialog ref={dialog} className="search-dialog" aria-labelledby="workspace-search-title" onClose={() => { setOpen(false); setQuery(""); }} onClick={event => { if (event.target === dialog.current) dialog.current.close(); }}>
-      <div className="search-dialog-surface"><h2 id="workspace-search-title" className="sr-only">Search workspace</h2>
-        <div className="search-dialog-input"><Search size={20} /><input ref={input} value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === "ArrowDown") { event.preventDefault(); dialog.current?.querySelector<HTMLAnchorElement>(".search-results a")?.focus(); } if (event.key === "Enter" && !loading && query.trim().length >= 2 && results[0]) window.location.assign(results[0].href); }} placeholder="Search enquiries and forms…" aria-label="Search enquiries and forms" maxLength={120} autoComplete="off" /><button className="icon-button" onClick={() => dialog.current?.close()} aria-label="Close search" title="Close search"><X size={18} /></button></div>
-        <div className="search-results" aria-busy={loading} onKeyDown={event => { if (!["ArrowDown", "ArrowUp"].includes(event.key)) return; const links = [...event.currentTarget.querySelectorAll<HTMLAnchorElement>("a")]; const index = links.indexOf(event.target as HTMLAnchorElement); if (index < 0) return; event.preventDefault(); const next = index + (event.key === "ArrowDown" ? 1 : -1); if (next < 0) input.current?.focus(); else links[Math.min(next, links.length - 1)]?.focus(); }}>
-          {query.trim().length < 2 ? <><p className="search-group-label">Go to</p>{shortcuts.map(({ title, href, icon: Icon }) => <a key={href} href={href}><Icon size={18} /><span><strong>{title}</strong></span><ArrowUpRight size={15} /></a>)}</> : <>
-            <p className="search-group-label" role="status">{loading ? "Searching…" : error || (results.length ? `${results.length} ${results.length === 1 ? "result" : "results"}` : "No matching enquiries or forms")}</p>
-            {results.map(result => <a href={result.href} key={`${result.kind}:${result.id}`}>{result.kind === "form" ? <FileInput size={18} /> : <Inbox size={18} />}<span><strong>{result.title}</strong><small>{result.detail}</small></span><ArrowUpRight size={15} /></a>)}
-          </>}
-        </div>
-      </div>
-    </dialog>
+    <Button variant="outline" className="workspace-search-trigger" onClick={() => setOpen(true)} aria-label="Search workspace"><Search size={17} /><span>Search workspace</span><kbd className="search-symbol">⌘ K</kbd></Button>
+    <Dialog open={open} onOpenChange={next => { setOpen(next); if (!next) setQuery(""); }}>
+      <DialogContent className="search-command p-0" showCloseButton={false}>
+        <DialogHeader className="sr-only"><DialogTitle>Search workspace</DialogTitle><DialogDescription>Search enquiries and forms, or jump to a workspace page.</DialogDescription></DialogHeader>
+        <Command shouldFilter={false}>
+          <CommandInput value={query} onValueChange={setQuery} placeholder="Search enquiries and forms…" maxLength={120} aria-label="Search enquiries and forms" />
+          <CommandList aria-busy={loading}>
+            {query.trim().length < 2 ? <CommandGroup heading="Go to">{shortcuts.map(({ title, href, icon: Icon }) => <CommandItem key={href} value={href} onSelect={() => window.location.assign(href)}><Icon size={18} /><span>{title}</span><ArrowUpRight size={15} className="ml-auto" /></CommandItem>)}</CommandGroup> : <>
+              <p className="search-group-label" role="status">{loading ? "Searching…" : error || (results.length ? `${results.length} ${results.length === 1 ? "result" : "results"}` : "No matching enquiries or forms")}</p>
+              <CommandGroup>{results.map(result => <CommandItem value={`${result.kind}:${result.id}`} key={`${result.kind}:${result.id}`} onSelect={() => window.location.assign(result.href)}>{result.kind === "form" ? <FileInput size={18} /> : <Inbox size={18} />}<span className="search-result-copy"><strong>{result.title}</strong><small>{result.detail}</small></span><ArrowUpRight size={15} className="ml-auto" /></CommandItem>)}</CommandGroup>
+            </>}
+          </CommandList>
+          <div className="command-hint"><span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span><span><kbd>↵</kbd> Open</span><span><kbd>esc</kbd> Close</span></div>
+        </Command>
+      </DialogContent>
+    </Dialog>
   </>;
 }

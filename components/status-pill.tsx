@@ -1,3 +1,5 @@
+
+import { Badge } from "@/components/ui/badge";
 export function StatusPill({ status }: { status: string }) {
-  return <span className="status-pill" data-status={status.toLowerCase()}><i aria-hidden />{status.toLowerCase()}</span>;
+  return <Badge variant="secondary" className="status-pill" data-status={status.toLowerCase()}><i aria-hidden />{status.toLowerCase()}</Badge>;
 }

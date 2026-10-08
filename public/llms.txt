@@ -1,4 +1,22 @@
-# d3CRM — form integration guide for AI agents
+# d3CRM — website enquiry CRM
+
+> d3CRM connects website contact forms to a shared enquiry inbox for small teams and agencies. It includes an enquiry pipeline, assignments, follow-up dates, reply drafts, client workspaces, campaign reports, and CSV exports.
+
+## Public product resources
+- [Product overview](/): Website enquiry workflow for teams and agencies.
+- [Features](/features): Implemented capabilities and workflow limits.
+- [Interactive demo](/demo): Fictional, page-local workspace; no account required.
+- [Guides](/guides): Public setup and lead management documentation.
+- [Connect website forms](/guides/connect-website-forms): Field matching, origins, test mode, and live mode.
+- [Manage client enquiries](/guides/manage-client-enquiries): Separate workspaces, roles, routing, and handover.
+- [Follow up on website leads](/guides/follow-up-website-leads): Statuses, assignments, drafts, and the UTC agenda.
+- [Free tools](/tools): Browser-only tools with no account requirement.
+- [Campaign URL builder](/tools/campaign-url-builder): Create UTM-tagged links; does not install analytics.
+- [Form launch checklist](/tools/form-launch-checklist): Review, copy, or print launch checks; does not inspect websites.
+
+Reply drafts are reviewed and sent in the user's email app, not automatically sent by d3CRM. Follow-up dates use UTC. Campaign reports describe submitted enquiry context, not visitor analytics. Optional notifications, webhooks, and billing depend on deployment configuration. Do not infer pricing, certifications, customer counts, or capabilities absent from the public pages.
+
+## Form integration guide for AI agents
 
 Use the form-specific integration prompt from the d3CRM dashboard as the source of truth for the endpoint, schema, allowed origins, and publishable key. Never guess credentials or endpoints.
 
