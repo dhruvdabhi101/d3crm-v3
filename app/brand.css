@@ -49,7 +49,6 @@ input[type="checkbox"] { accent-color: var(--accent); }
 .panel > .panel-header:first-child, .panel-header.padded { padding: 20px 22px; }
 .stats-grid { gap: 0; padding: 0 0 24px; margin-bottom: 20px; }
 .stat-card { border: 0; border-right: 1px solid var(--line); background: transparent; padding: 0 28px; text-align: left; }
-.stat-card:first-child { padding-left: 0; }
 .stat-card:last-child { border-right: 0; }
 .stat-card p { font-size: .8125rem; justify-content: space-between; width: 100%; }
 .stat-card p svg { color: var(--accent); }
@@ -62,7 +61,7 @@ input[type="checkbox"] { accent-color: var(--accent); }
 .overview-grid { grid-template-columns: minmax(0, 1fr) 280px; gap: 36px; padding-top: 26px; border-top: 1px solid var(--line); }
 .inbox-panel { min-height: 0; }
 .inbox-panel > .panel-header { padding: 0 0 18px; }
-.inbox-panel .list-row { padding: 16px 0; }
+.inbox-panel .list-row { padding: 16px 24px; }
 .list-main strong { font-size: .875rem; }
 .list-main small, .list-row time { font-size: .75rem; }
 .submission-dot { background: var(--accent); }
@@ -171,8 +170,12 @@ p { text-wrap: pretty; }
 [data-slot="dialog-content"], [data-slot="sheet-content"], [data-slot="alert-dialog-content"] { animation-duration: 160ms; }
 [data-slot="dropdown-menu-content"] { animation-duration: 120ms; transform-origin: var(--radix-dropdown-menu-content-transform-origin); }
 .search-command[data-slot="dialog-content"] { animation: none; }
-[data-slot="command-input"] { box-shadow: none; border: 0; font-size: 1rem; }
-[data-slot="command-input"]:focus { box-shadow: none; }
+body:has(.search-command) [data-slot="dialog-overlay"] { animation: none; }
+[data-slot="command-input-wrapper"] { height: 56px; padding: 0 16px; gap: 10px; }
+[data-slot="command-input-wrapper"]:focus-within { background: #f8fbf9; }
+/* The palette field is part of its header, rather than a standalone form input. */
+[data-slot="command-input"] { height: 100%; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; font-size: 1rem; }
+[data-slot="command-input"]:focus, [data-slot="command-input"]:focus-visible { outline: none; box-shadow: none; }
 [data-slot="command-item"] { cursor: pointer; }
 .search-result-copy { display: grid; gap: 3px; min-width: 0; }
 .search-result-copy strong { font-size: .875rem; font-weight: 550; overflow-wrap: anywhere; }

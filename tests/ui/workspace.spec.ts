@@ -59,6 +59,33 @@ test("sign-in uses real authentication and redirects signed-in auth pages", asyn
 test.describe("authenticated workspace", () => {
   test.beforeEach(async ({ context }) => { await context.addCookies([{ name: "next-auth.session-token", value: token, url: base, httpOnly: true, sameSite: "Lax" }]); });
 
+  test("overview cards keep equal insets and search focus stays inside its header", async ({ page }, testInfo) => {
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/dashboard");
+      const insets = await page.locator(".stat-card").evaluateAll(cards => cards.map(card => getComputedStyle(card).paddingLeft));
+      expect(insets).toHaveLength(3);
+      expect(new Set(insets).size).toBe(1);
+      expect(parseFloat(insets[0])).toBeGreaterThan(0);
+      const rowInset = await page.locator(".inbox-panel .list-row").first().evaluate(row => parseFloat(getComputedStyle(row).paddingLeft));
+      expect(rowInset).toBeGreaterThan(0);
+      await page.keyboard.press("ControlOrMeta+k");
+      const input = page.getByRole("combobox", { name: "Search enquiries and forms" });
+      await expect(input).toBeFocused();
+      await expect(input).toHaveCSS("outline-style", "none");
+      await expect(input).toHaveCSS("box-shadow", "none");
+      const inputBox = await input.boundingBox();
+      const headerBox = await page.locator('[data-slot="command-input-wrapper"]').boundingBox();
+      expect(inputBox).not.toBeNull();
+      expect(headerBox).not.toBeNull();
+      expect(inputBox!.y).toBeGreaterThanOrEqual(headerBox!.y);
+      expect(inputBox!.y + inputBox!.height).toBeLessThanOrEqual(headerBox!.y + headerBox!.height);
+      await page.screenshot({ path: testInfo.outputPath(`search-${width}.png`) });
+      await page.keyboard.press("Escape");
+      await page.screenshot({ path: testInfo.outputPath(`overview-${width}.png`) });
+    }
+  });
+
   test("all work screens render and search supports keyboard selection", async ({ page }) => {
     for (const path of ["/dashboard", "/submissions", "/follow-ups", "/forms", "/reports", "/clients", "/templates", "/activity", "/settings"]) {
       const response = await page.goto(path);
