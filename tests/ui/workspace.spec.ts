@@ -63,6 +63,8 @@ test.describe("authenticated workspace", () => {
     for (const width of [1280, 390]) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/dashboard");
+      await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
+      await expect(page.locator(".inbox-panel .list-row").first()).toBeVisible();
       const insets = await page.locator(".stat-card").evaluateAll(cards => cards.map(card => getComputedStyle(card).paddingLeft));
       expect(insets).toHaveLength(3);
       expect(new Set(insets).size).toBe(1);
