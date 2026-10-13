@@ -1,0 +1,83 @@
+.ascii-landing {
+  --ink: #292822;
+  --muted: #706b63;
+  --line: #e4ded4;
+  --line-strong: #d2c8bb;
+  --accent: #a94e25;
+  --accent-strong: #833b20;
+  --accent-soft: #f5e9df;
+  background: #f8f5ee;
+  color: var(--ink);
+}
+.ascii-landing .site-header { max-width: 1360px; min-height: 96px; }
+.ascii-landing [data-slot="button"][data-variant="default"] { background: #292822; color: #fffdf7; box-shadow: none; }
+.ascii-landing [data-slot="button"][data-variant="outline"] { background: transparent; border-color: var(--line-strong); box-shadow: none; }
+.ascii-landing .site-account > [data-slot="button"] { border-radius: 4px; }
+.ascii-landing .product-hero { max-width: 1360px; grid-template-columns: 1fr 1.05fr; gap: 28px; padding: 64px 48px 72px; }
+.ascii-landing .hero-copy .eyebrow { font-family: monospace; font-size: .65rem; letter-spacing: .09em; color: var(--muted); margin-bottom: 30px; }
+.ascii-landing .editorial-mark { border: 0; border-radius: 0; color: var(--accent); width: auto; font-size: 1.2rem; }
+.ascii-landing .hero-copy h1 { font-size: clamp(3.5rem, 6.3vw, 6rem); line-height: 1.02; font-weight: 500; letter-spacing: -.065em; }
+.ascii-landing .hero-copy h1 > span { color: var(--accent); margin: 0; }
+.ascii-landing .hero-description { max-width: 390px; margin: 28px 0; font-size: 1rem; line-height: 1.8; }
+.ascii-landing .hero-actions { gap: 12px; }
+.ascii-landing .hero-actions [data-slot="button"] { min-height: 48px; padding: 0 20px; border-radius: 4px; font-size: .8rem; }
+.ascii-landing .hero-footnote { font-size: .73rem; margin: 22px 0 0; }
+.ascii-art { align-self: stretch; display: flex; flex-direction: column; justify-content: center; min-width: 0; position: relative; background-image: radial-gradient(#cfc2b066 .7px, transparent .7px); background-size: 18px 18px; }
+.ascii-sculpture { display: block; width: 100%; height: auto; }
+.ascii-art-label { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-family: monospace; font-size: .56rem; letter-spacing: .08em; color: #8b7767; padding: 12px 8px; }
+.ascii-art-bottom { border-top: 1px solid var(--line); }
+.landing-index { display: flex; justify-content: space-between; align-items: center; gap: 24px; max-width: 1264px; margin: auto; padding: 22px 0; border-top: 1px solid var(--line-strong); border-bottom: 1px solid var(--line-strong); color: var(--muted); font: .625rem monospace; letter-spacing: .075em; }
+.landing-index > span:last-child { display: inline-flex; align-items: center; gap: 20px; }
+.landing-desk { display: grid; grid-template-columns: 1fr 1.2fr; align-items: center; gap: 100px; max-width: 1360px; margin: auto; padding: 100px 48px; }
+.ascii-landing .site-section-heading .eyebrow, .ascii-landing .agency-heading .eyebrow, .ascii-landing .site-final .eyebrow { font-family: monospace; font-size: .625rem; letter-spacing: .08em; }
+.ascii-landing .site-section-heading h2, .ascii-landing .site-agencies h2, .ascii-landing .site-final h2 { font-weight: 500; letter-spacing: -.05em; }
+.landing-desk .text-link { margin-top: 18px; }
+.ascii-landing .desk-preview { border-radius: 8px; border-color: var(--line-strong); box-shadow: 0 18px 48px #4a35200a; }
+.ascii-landing .desk-preview-heading { background: #f4f0e8; }
+.ascii-landing .desk-next-step { background: #f8f5ee; border-color: var(--line); }
+.ascii-landing .site-workflow { background: #f0ece3; padding: 80px max(48px, calc((100% - 1264px) / 2)); border-color: var(--line); }
+.ascii-landing .workflow-columns article { border-color: var(--line-strong); }
+.ascii-landing .site-agencies { background: #f8f5ee; padding: 90px max(48px, calc((100% - 1264px) / 2)); }
+.ascii-landing .client-workspace-preview { background: #ffffff70; border-color: var(--line-strong); border-radius: 8px; }
+.ascii-landing .client-preview-label, .ascii-landing .client-preview-row { border-color: var(--line); }
+.ascii-landing .site-faq { background: #f8f5ee; border-top: 1px solid var(--line); }
+.ascii-landing .site-resource-note { background: #f0ece3; border-color: var(--line); }
+.ascii-landing .site-final { background: #eee7da; color: var(--ink); border-top: 1px solid var(--line-strong); }
+.ascii-landing .site-final .eyebrow { color: var(--muted); }
+.ascii-landing .site-final h2 { font-size: clamp(2.5rem, 5vw, 4.5rem); }
+.ascii-landing .site-footer { background: #f8f5ee; border-color: var(--line); }
+@media (hover: hover) {
+  .ascii-landing [data-slot="button"][data-variant="default"]:hover { background: #48453c; }
+  .ascii-landing [data-slot="button"][data-variant="outline"]:hover { background: #eee7da; }
+}
+@media (max-width: 1360px) { .landing-index { margin-right: 48px; margin-left: 48px; } }
+@media (max-width: 1000px) {
+  .ascii-landing .product-hero { gap: 20px; padding: 48px 32px 60px; }
+  .ascii-landing .hero-copy h1 { font-size: 4.3rem; }
+  .ascii-landing .hero-actions [data-slot="button"] { padding: 0 14px; font-size: .75rem; }
+  .landing-desk { gap: 40px; padding: 72px 32px; }
+  .landing-index { margin-right: 32px; margin-left: 32px; }
+  .ascii-art-label { font-size: .48rem; letter-spacing: 0; }
+}
+@media (max-width: 850px) {
+  .ascii-landing .product-hero { grid-template-columns: 1fr 1fr; }
+  .ascii-landing .hero-copy h1 { font-size: clamp(3rem, 7vw, 4.3rem); }
+  .ascii-landing .hero-copy .eyebrow { font-size: .55rem; letter-spacing: .03em; }
+  .ascii-art-bottom > span:last-child { display: none; }
+  .landing-desk { grid-template-columns: 1fr; gap: 32px; }
+  .landing-desk .hero-desk { width: 100%; max-width: 650px; }
+}
+@media (max-width: 620px) {
+  .ascii-landing .site-header { min-height: 80px; }
+  .ascii-landing .product-hero { grid-template-columns: minmax(0, 1fr); padding: 40px 20px 28px; gap: 32px; }
+  .ascii-landing .hero-copy h1 { font-size: clamp(3.5rem, 14vw, 5rem); }
+  .ascii-landing .hero-copy .eyebrow { font-size: .6rem; margin-bottom: 24px; }
+  .ascii-landing .hero-description { font-size: .9375rem; margin: 24px 0; }
+  .ascii-landing .hero-actions [data-slot="button"] { font-size: .75rem; padding: 0 14px; }
+  .ascii-art { width: 100%; max-width: 420px; justify-self: center; }
+  .ascii-art-label { font-size: .5rem; }
+  .ascii-art-bottom > span:last-child { display: inline; }
+  .landing-index { margin: 0 20px; flex-direction: column; align-items: flex-start; gap: 10px; font-size: .53rem; padding: 18px 0; }
+  .landing-desk { padding: 56px 20px; }
+  .ascii-landing .site-workflow, .ascii-landing .site-agencies, .ascii-landing .site-faq, .ascii-landing .site-final { padding: 56px 20px; }
+}
