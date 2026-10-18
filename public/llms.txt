@@ -5,6 +5,7 @@
 ## Public product resources
 - [Product overview](/): Website enquiry workflow for teams and agencies.
 - [Features](/features): Implemented capabilities and workflow limits.
+- [Compare](/compare): How d3CRM differs from form backends such as Formspree, hosted form builders, and full CRMs, including when another tool fits better.
 - [Interactive demo](/demo): Fictional, page-local workspace; no account required.
 - [Guides](/guides): Public setup and lead management documentation.
 - [Connect website forms](/guides/connect-website-forms): Field matching, origins, test mode, and live mode.
