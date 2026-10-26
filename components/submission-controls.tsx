@@ -27,10 +27,11 @@ export function SubmissionControls({ id, status, assigneeId, followUpAt, read, u
   return <form action={action} className="connection-form" aria-busy={pending}><input type="hidden" name="updatedAt" value={loadedVersion} /><fieldset disabled={pending}>
     <Label className="field"><span>Status</span><NativeSelect aria-label="Status" name="status" value={draftStatus} onChange={event => { setStatus(event.target.value); setDirty(true); }}>{LEAD_STATUSES.map(value => <NativeSelectOption value={value} key={value}>{statusLabel(value)}</NativeSelectOption>)}</NativeSelect></Label>
     <Label className="field"><span>Assigned to</span><NativeSelect aria-label="Assigned to" name="assigneeId" value={draftAssignee} onChange={event => { setAssignee(event.target.value); setDirty(true); }}><NativeSelectOption value="">Unassigned</NativeSelectOption>{members.map(member => <NativeSelectOption key={member.id} value={member.id}>{member.name}</NativeSelectOption>)}</NativeSelect></Label>
-    <Label className="field"><span>Follow up</span><Input type="date" name="followUpAt" value={draftFollowUp} onChange={event => { setFollowUp(event.target.value); setDirty(true); }} /></Label>
+    <Label className="field"><span>Follow up</span><Input aria-describedby="enquiry-follow-up-hint" type="date" name="followUpAt" value={draftFollowUp} onChange={event => { setFollowUp(event.target.value); setDirty(true); }} /></Label>
+    <p id="enquiry-follow-up-hint" className="quiet-note follow-up-hint">Dates use UTC. Leave blank to clear the follow-up.</p>
     <Label className="check-field"><Checkbox  name="unread" checked={unread} onCheckedChange={checked => { setUnread((checked === true)); setDirty(true); }} /><span>Mark unread</span></Label>
     <Button variant="default" className="button button-primary" disabled={pending}><Save size={16} aria-hidden="true" /><span className="button-label"><span aria-hidden="true" className="button-label-size">Save changes</span><span>{pending ? "Saving..." : "Save changes"}</span></span></Button>
-  </fieldset>{state.error && <Alert variant="destructive" className="form-error" role="alert"><AlertDescription>{state.error}</AlertDescription></Alert>}{state.success && !dirty && !pending && <Alert className="form-success" role="status"><AlertDescription>{state.success}</AlertDescription></Alert>}
+  </fieldset>{dirty && !pending && <p className="quiet-note" role="status">Unsaved changes. Save to update this enquiry.</p>}{state.error && <Alert variant="destructive" className="form-error" role="alert"><AlertDescription>{state.error}</AlertDescription></Alert>}{state.success && !dirty && !pending && <Alert className="form-success" role="status"><AlertDescription>{state.success}</AlertDescription></Alert>}
   </form>;
 }
 

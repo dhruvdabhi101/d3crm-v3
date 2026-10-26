@@ -683,3 +683,13 @@ kbd { font-family: inherit; border: 1px solid var(--line); border-radius: 4px; p
   .launch-checklist li { break-inside: avoid; }
   .resource-section { break-inside: avoid; }
 }
+
+/* Keep follow-up actions ahead of the long reply and history on small screens. */
+.enquiry-response { min-width: 0; }
+.enquiry-detail { row-gap: 0; }
+.enquiry-content { grid-column: 1; }
+.enquiry-sidebar { grid-column: 2; grid-row: 1 / span 2; align-self: start; }
+.enquiry-detail .follow-up-hint { margin: 0; }
+@media (max-width: 600px) {
+  .enquiry-sidebar { grid-column: 1; grid-row: auto; margin: 16px 0 24px; }
+}
