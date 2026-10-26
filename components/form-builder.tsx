@@ -12,15 +12,14 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { ArrowRight, Check, Code2, MessageSquare, Plus, Trash2, Users } from "lucide-react";
+import { ArrowRight, Bot, Check, Code2, MessageSquare, Plus, Trash2, Users } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { createForm, updateForm } from "@/lib/actions/forms";
 import { FIELD_TYPES, type FormField, type FormSchema } from "@/lib/forms/types";
-import { buildDesignPrompt, parseAgentForm } from "@/lib/forms/agent";
+import { buildDesignPrompt, designBriefExamples, parseAgentForm } from "@/lib/forms/agent";
 import { CopyButton } from "@/components/copy-button";
 import { FormPreview } from "@/components/form-preview";
-import { AgentKit } from "@/components/agent-kit";
 import { IntegrationWizard } from "@/components/integration-wizard";
 
 const initialFields: FormField[] = [
@@ -52,18 +51,25 @@ export function FormBuilder({ baseUrl, initialMode = "manual", initialForm }: { 
   function importForm() {
     try {
       const result = parseAgentForm(json);
-      setName(result.name); setFields(result.schema.fields); setImportError(""); setNotice("Form imported. Review your fields and preview, then create your form."); setMode("manual");
-    } catch (error) { setImportError(error instanceof SyntaxError ? "That isn’t valid JSON. Paste the complete JSON response from your agent." : error instanceof Error ? error.message : "Unable to import form."); }
+      setName(result.name); setFields(result.schema.fields); setImportError(""); setNotice("Imported. Check each field and the preview, then create your form."); setMode("manual");
+    } catch (error) { setImportError(error instanceof SyntaxError ? "That doesn’t look like the JSON reply. Copy the whole answer from your AI and paste it again." : error instanceof Error ? error.message : "Unable to import form."); }
   }
 
   if (state.success && initialForm) return <Card className="success-card"><h2>{state.success}</h2><Button asChild variant="default"><Link className="button button-primary" href={`/forms/${initialForm.id}`}>Open form<ArrowRight size={15} /></Link></Button></Card>;
   if (state.created) {
     const endpoint = `${baseUrl}/api/v1/forms/${state.created.slug}/submissions`;
-    return <><Card className="success-card"><span className="success-icon"><Check size={24} /></span><p className="eyebrow">Ready to connect</p><h2>Your form is ready.</h2><p>Your form is live. Copy the integration prompt below and give it to your coding agent to build the form on your website.</p><div className="secret-row"><code>{state.created.key}</code><CopyButton value={state.created.key} /></div><p className="quiet-note">This publishable key is shown only once. Save it before leaving.</p><div className="success-actions"><Button asChild variant="default"><Link className="button button-primary" href={`/forms/${state.created.id}`}>Open form <ArrowRight size={15} /></Link></Button><CopyButton value={endpoint} label="Copy endpoint" /></div></Card><IntegrationWizard id={state.created.id} name={state.created.name ?? name} endpoint={endpoint} schema={state.created.schema ?? schema} initialKey={state.created.key} keyPrefix={state.created.key.slice(0, 12)} origins={state.created.allowedOrigins ?? []} checkedAt={null} latestAt={null} /><AgentKit name={state.created.name ?? name} endpoint={endpoint} schema={state.created.schema ?? schema} formKey={state.created.key} origins={state.created.allowedOrigins ?? []} /></>;
+    return <><Card className="success-card"><span className="success-icon"><Check size={24} /></span><h2>Your form is live. Next, put it on your website.</h2><p>Follow the four steps below. Enquiries start arriving in your inbox as soon as the form is on your site.</p><div className="secret-row"><span><strong>Publishable key</strong><code>{state.created.key}</code></span><CopyButton value={state.created.key} label="Copy key" /></div><p className="quiet-note">This key is shown only once. It&apos;s already filled in below, but save a copy before you leave this page.</p><div className="success-actions"><Button asChild variant="outline"><Link className="button button-secondary" href={`/forms/${state.created.id}`}>Open form <ArrowRight size={15} /></Link></Button></div></Card><IntegrationWizard id={state.created.id} name={state.created.name ?? name} endpoint={endpoint} schema={state.created.schema ?? schema} initialKey={state.created.key} keyPrefix={state.created.key.slice(0, 12)} origins={state.created.allowedOrigins ?? []} checkedAt={null} latestAt={null} /></>;
   }
 
-  return <div className="builder-workspace"><Tabs className="builder-editor" value={mode} onValueChange={value => setMode(value as typeof mode)}><TabsList className="builder-modes" aria-label="Form creation method"><TabsTrigger value="manual"><Plus size={15} />Form editor</TabsTrigger><TabsTrigger value="ai"><Code2 size={15} />Build with AI</TabsTrigger></TabsList>
-    <TabsContent value="ai"><Card className="panel ai-composer"><span className="ai-icon"><Code2 size={23} strokeWidth={1.5} /></span><h2>Start with an idea.</h2><p>Copy a ready-to-use prompt into your favorite AI. Paste its JSON response here to turn it into a form.</p><Label className="field"><span>What would you like to collect?</span><Textarea rows={4} value={brief} maxLength={5000} onChange={e => setBrief(e.target.value)} placeholder="A project inquiry form for my design studio. Ask for name, work email, budget, and a short project description…" /></Label><div className="prompt-action"><small>Works with any AI · no API key needed</small><CopyButton value={buildDesignPrompt(brief)} label="Copy AI prompt" /></div><div className="import-divider"><span>Then bring it back here</span></div><Label className="field"><span>Paste the JSON from your agent</span><Textarea className="json-input" rows={5} value={json} maxLength={64000} onChange={e => setJson(e.target.value)} placeholder={'{"name":"Project inquiry","schema":{"version":1,"fields":[…]}}'} /></Label>{importError && <Alert variant="destructive" className="form-error" role="alert"><AlertDescription>{importError}</AlertDescription></Alert>}<Button variant="default" className="button button-primary" type="button" disabled={!json.trim()} onClick={importForm}>Import form <ArrowRight size={15} /></Button></Card></TabsContent>
+  return <div className="builder-workspace"><Tabs className="builder-editor" value={mode} onValueChange={value => setMode(value as typeof mode)}><TabsList className="builder-modes" aria-label="Form creation method"><TabsTrigger value="manual"><Plus size={15} />Form editor</TabsTrigger><TabsTrigger value="ai"><Bot size={15} />Build with AI</TabsTrigger></TabsList>
+    <TabsContent value="ai"><Card className="panel ai-composer">
+      <header className="guide-head"><h2>Describe it. Your AI drafts it. You review it.</h2><p>Use ChatGPT, Claude, Gemini, or any chat assistant. You don&apos;t need an API key, and nothing is created until you review the fields.</p></header>
+      <ol className="ai-steps">
+        <li><span className="guide-marker" aria-hidden="true">1</span><div><h3>Describe what you want to collect</h3><Label className="field"><span className="sr-only">What would you like to collect?</span><Textarea rows={4} value={brief} maxLength={5000} onChange={e => setBrief(e.target.value)} placeholder="A quote request form for my cleaning business. Ask for name, phone, address, type of clean, and preferred date…" /></Label><div className="brief-examples" role="group" aria-label="Example descriptions"><span>Try an example:</span>{designBriefExamples.map(example => <Button key={example.label} variant="outline" type="button" className="button button-secondary button-small" aria-pressed={brief === example.brief} onClick={() => setBrief(example.brief)}>{example.label}</Button>)}</div></div></li>
+        <li><span className="guide-marker" aria-hidden="true">2</span><div><h3>Copy the prompt into your AI</h3><p>The prompt includes your description and the exact format d3CRM needs. Paste it into a new chat.</p><div className="prompt-action"><CopyButton primary value={buildDesignPrompt(brief)} label="Copy AI prompt" /></div><details className="prompt-preview"><summary>Read the prompt</summary><pre tabIndex={0}>{buildDesignPrompt(brief)}</pre></details></div></li>
+        <li><span className="guide-marker" aria-hidden="true">3</span><div><h3>Paste the answer back here</h3><p>Copy your AI&apos;s whole reply, even if it&apos;s wrapped in a code block. You&apos;ll review every field before the form is created.</p><Label className="field"><span className="sr-only">Paste the JSON from your AI</span><Textarea className="json-input" rows={5} value={json} maxLength={64000} onChange={e => { setJson(e.target.value); setImportError(""); }} placeholder={'{"name":"Quote request","schema":{"version":1,"fields":[…]}}'} /></Label>{importError && <Alert variant="destructive" className="form-error" role="alert"><AlertDescription>{importError}</AlertDescription></Alert>}<Button variant="default" className="button button-primary" type="button" disabled={!json.trim()} onClick={importForm}>Import and review <ArrowRight size={15} /></Button></div></li>
+      </ol>
+    </Card></TabsContent>
     {notice && <Alert className="import-notice" role="status"><AlertDescription><Check size={16} />{notice}</AlertDescription></Alert>}
     <TabsContent value="manual" forceMount hidden={mode === "ai"}><form action={action} className="builder-layout">
       <input type="hidden" name="schema" value={JSON.stringify(schema)} />

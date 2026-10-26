@@ -1,17 +1,32 @@
 "use client";
-import { Card } from "@/components/ui/card";
-
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-
-import { useState } from "react";
-import { Braces, Code2 } from "lucide-react";
+import { Check } from "lucide-react";
 import { CopyButton } from "@/components/copy-button";
 import { buildIntegrationPrompt } from "@/lib/forms/agent";
 import type { FormSchema } from "@/lib/forms/types";
 
+const agentTasks = [
+  "Builds the form in your site's own design and framework",
+  "Sends each enquiry to this form in d3CRM",
+  "Adds spam protection and campaign tracking",
+  "Shows clear errors, then tells you how to test it",
+];
+
 export function AgentKit({ name, endpoint, schema, formKey, origins }: { name: string; endpoint: string; schema: FormSchema; formKey?: string; origins: string[] }) {
-  const [tab, setTab] = useState<"prompt" | "schema">("prompt");
   const prompt = buildIntegrationPrompt({ name, endpoint, schema, key: formKey, origins });
-  const value = tab === "prompt" ? prompt : JSON.stringify({ name, schema }, null, 2);
-  return <Card className="panel agent-kit"><Tabs value={tab} onValueChange={value => setTab(value as typeof tab)}><div className="panel-header"><div><p className="eyebrow"><Code2 size={13} /> AI handoff</p><h2>Connect with your AI agent</h2><p className="panel-description">Paste this into Codex, Claude, Cursor, or any coding agent to build and connect your form.</p></div></div><div className="agent-toolbar"><TabsList aria-label="Agent handoff format"><TabsTrigger value="prompt"><Code2 size={14} />Integration prompt</TabsTrigger><TabsTrigger value="schema"><Braces size={14} />Form JSON</TabsTrigger></TabsList><CopyButton value={value} label={tab === "prompt" ? "Copy prompt" : "Copy JSON"} /></div><TabsContent value="prompt"><pre className="agent-code" tabIndex={0}>{prompt}</pre></TabsContent><TabsContent value="schema"><pre className="agent-code" tabIndex={0}>{JSON.stringify({ name, schema }, null, 2)}</pre></TabsContent><p className="quiet-note">{formKey ? "Your publishable key is included. Save this prompt before leaving this page." : "The prompt includes your exact fields and endpoint. Your agent will ask for the publishable key."}</p></Tabs></Card>;
+  return <div className="handoff">
+    <div className="handoff-copy">
+      <h3>What your agent will do</h3>
+      <ul className="handoff-tasks">{agentTasks.map(task => <li key={task}><Check size={15} aria-hidden="true" />{task}</li>)}</ul>
+      <p className="handoff-tools">Use an assistant that can edit your website&apos;s code: Claude Code, Cursor, Codex, Lovable, Bolt, or Replit.</p>
+    </div>
+    <div className="handoff-actions">
+      <CopyButton primary value={prompt} label="Copy prompt" />
+      <CopyButton value={JSON.stringify({ name, schema }, null, 2)} label="Copy form JSON" />
+    </div>
+    <p className="handoff-note">{formKey ? "Your key is in the prompt. It's publishable, so it's safe in website code." : "No key added, so your agent will ask you for it before connecting."}</p>
+    <details className="prompt-preview">
+      <summary>Read the full prompt</summary>
+      <pre tabIndex={0}>{prompt}</pre>
+    </details>
+  </div>;
 }

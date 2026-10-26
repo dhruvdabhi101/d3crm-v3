@@ -85,3 +85,8 @@ ${fields}
 ${js}
 </script>`;
 }
+
+export function fetchExample(endpoint: string, schema: FormSchema) {
+  const sample = Object.fromEntries(schema.fields.map(field => [field.id, field.type === "checkbox" ? true : field.type === "number" ? 1 : field.type === "email" ? "person@example.com" : field.type === "select" ? field.options?.[0] : `Your ${field.label.toLowerCase()}`]));
+  return `const params = new URLSearchParams(location.search);\nconst campaign = Object.fromEntries(\n  ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"]\n    .filter(key => params.get(key))\n    .map(key => [key, params.get(key).slice(0, 200)])\n);\n\nfetch("${endpoint}", {\n  method: "POST",\n  headers: {\n    "Content-Type": "application/json",\n    "X-Form-Key": "YOUR_FORM_KEY"\n  },\n  body: JSON.stringify({\n    ...${JSON.stringify(sample, null, 2).replaceAll("\n", "\n    ")},\n    _gotcha: "",\n    _context: {\n      landing_page: location.origin + location.pathname,\n      referrer: document.referrer || undefined,\n      ...campaign\n    }\n  })\n});`;
+}
