@@ -132,4 +132,22 @@ Add or extend a test whenever you change permissions, validation, the public API
 
 - Write commit messages as a short imperative summary, one logical change per commit.
 - Schema changes need a committed migration created with `pnpm db:migrate`.
-- `pnpm build` runs `prisma generate`, `prisma migrate deploy`, and `next build`. The VPS deploy runs that same build, then reloads the pm2 process.
+- `pnpm build` runs `prisma generate`, `prisma migrate deploy`, and `next build`.
+
+### Production (VPS)
+
+The app lives in `/var/www/d3crm-v3`, owned by the `d3crm` user. It runs under that user's own pm2 daemon (`PM2_HOME=/var/lib/d3crm/.pm2`) as the process `d3crm`, which runs `next start` on `127.0.0.1:3000` behind https://d3crm.tech. A separate root pm2 daemon runs unrelated apps; never touch it.
+
+**Run every command as `d3crm`, never as root.** Root-owned files in `.git` break the next `git pull` ("failed to write object").
+
+```bash
+sudo -u d3crm -H bash -lc 'set -eo pipefail
+  cd /var/www/d3crm-v3 && export PM2_HOME=/var/lib/d3crm/.pm2
+  git pull --ff-only origin main
+  rm -rf /var/lib/d3crm/next-backup && cp -a .next /var/lib/d3crm/next-backup
+  pnpm install --frozen-lockfile
+  pnpm build
+  pm2 reload d3crm --update-env'
+```
+
+To roll back, check out the previous commit, restore `/var/lib/d3crm/next-backup` to `.next`, and run `pm2 reload d3crm`. After a deploy, check that `/`, `/sign-in`, and https://d3crm.tech return 200, then read `pm2 logs d3crm --err --lines 20 --nostream`.
