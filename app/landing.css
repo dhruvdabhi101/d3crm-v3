@@ -81,3 +81,7 @@
   .landing-desk { padding: 56px 20px; }
   .ascii-landing .site-workflow, .ascii-landing .site-agencies, .ascii-landing .site-faq, .ascii-landing .site-final { padding: 56px 20px; }
 }
+.ascii-landing .hero-footnote a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; transition: text-decoration-color 140ms ease; }
+.ascii-landing .hero-footnote a:hover { text-decoration-color: currentColor; }
+.ascii-landing .site-final .hero-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 20px; }
+@media (prefers-reduced-motion: reduce) { .ascii-landing .hero-footnote a { transition: none; } }

@@ -31,7 +31,11 @@ test.afterAll(async () => { if (orgId) await db.organization.delete({ where: { i
 test("public mobile navigation, disclosure, and checklist remain usable", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("A first hello.");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Website forms.");
+  const hero = page.locator(".product-hero");
+  for (const action of ["Try the live demo", "Create a workspace"]) await expect(hero.getByRole("link", { name: action })).toBeInViewport();
+  await expect(hero.locator(".hero-description")).toBeInViewport();
+  await expect(hero.getByRole("link", { name: "Compared with Formspree and HubSpot" })).toHaveAttribute("href", "/compare");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.getByRole("button", { name: "Open navigation" }).click();
   await expect(page.getByRole("dialog", { name: "d3CRM" })).toBeVisible();
