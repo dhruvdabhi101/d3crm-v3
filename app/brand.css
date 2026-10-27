@@ -848,3 +848,161 @@ kbd { font-family: inherit; border: 1px solid var(--line); border-radius: 4px; p
 @media (prefers-reduced-motion: reduce) {
   .route-option, .guide-rail button, .prompt-preview summary::before { transition: none; }
 }
+
+/* Reports: one card per question, quiet teal intensity, dotted fill for "still counting". */
+:root {
+  --chart-1: color-mix(in oklab, var(--accent) 14%, var(--surface));
+  --chart-2: color-mix(in oklab, var(--accent) 34%, var(--surface));
+  --chart-3: color-mix(in oklab, var(--accent) 62%, var(--surface));
+  --chart-4: var(--accent);
+  --chart-track: color-mix(in oklab, var(--accent) 5%, var(--surface));
+  --chart-new: color-mix(in oklab, var(--ink) 22%, var(--surface));
+  --chart-contacted: #d9a441;
+  --chart-lost: color-mix(in oklab, var(--danger) 55%, var(--surface));
+  --chart-up: var(--accent-strong);
+  --chart-down: var(--danger);
+  --chart-dither: radial-gradient(var(--accent) 1px, transparent 1.25px) 0 0 / 4px 4px;
+}
+
+.reports-page { display: grid; gap: 20px; }
+.reports-page > .page-header { margin-bottom: 4px; }
+
+.report-toolbar { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; }
+.report-presets { display: inline-flex; padding: 4px; gap: 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.report-presets a { display: inline-flex; align-items: center; min-height: 32px; padding: 0 12px; border-radius: 7px; color: var(--muted); font-size: .8125rem; font-weight: 550; text-decoration: none; transition: background-color 140ms ease, color 140ms ease; }
+.report-presets a[aria-current="page"] { background: var(--accent-soft); color: var(--accent-strong); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 22%, transparent); }
+.report-presets a:active { transform: translateY(1px); }
+.report-filters { display: grid; grid-template-columns: 150px 150px minmax(160px, 220px) auto; gap: 12px; align-items: end; margin: 0; }
+.report-filters .field > span { font-size: .75rem; color: var(--muted); }
+
+.report-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.kpi-card { display: grid; align-content: start; gap: 8px; min-width: 0; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.kpi-card h2 { margin: 0; color: var(--muted); font-size: .8125rem; font-weight: 550; }
+.kpi-card strong { font-size: 1.875rem; font-weight: 600; line-height: 1.1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.kpi-change { color: var(--muted); font-size: .75rem; line-height: 1.5; }
+.kpi-change[data-direction="up"] { color: var(--chart-up); }
+.kpi-change[data-direction="down"] { color: var(--chart-down); }
+
+.report-card { min-width: 0; padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.report-card-head { display: grid; gap: 4px; margin-bottom: 20px; }
+.report-card-head h2 { margin: 0; font-size: 1.0625rem; font-weight: 650; }
+.report-card-head p { margin: 0; max-width: 640px; color: var(--muted); font-size: .8125rem; line-height: 1.55; }
+.report-card-head strong { color: var(--ink); font-weight: 600; }
+.report-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.report-empty { margin: 0; color: var(--muted); font-size: .8125rem; }
+
+.chart-key { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: var(--muted); font-size: .75rem; }
+.chart-swatch { display: inline-block; flex: none; width: 10px; height: 10px; border-radius: 3px; background: var(--chart-4); }
+.chart-swatch[data-partial] { background: var(--chart-dither); box-shadow: inset 0 0 0 1px var(--chart-3); }
+
+.trend-chart { margin: 0; }
+.trend-plot { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; }
+.trend-scale { display: flex; flex-direction: column; justify-content: space-between; height: 180px; color: var(--faint); font-size: .75rem; font-variant-numeric: tabular-nums; text-align: right; }
+.trend-scale span { transform: translateY(-50%); }
+.trend-scale span:last-child { transform: translateY(0); }
+.trend-bars { display: grid; grid-template-columns: repeat(var(--trend-count), minmax(0, 1fr)); align-items: end; gap: 4px; height: 180px; margin: 0; padding: 0; list-style: none; border-bottom: 1px solid var(--line-strong); background: linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 100% 50%; }
+.trend-bars[data-dense] { gap: 1px; }
+.trend-bars li { position: relative; display: flex; align-items: end; height: 100%; min-width: 0; }
+.trend-bars i { display: block; width: 100%; min-height: 2px; border-radius: 3px 3px 0 0; background: var(--chart-3); transition: background-color 120ms ease; }
+.trend-bars[data-dense] i { border-radius: 1px 1px 0 0; }
+.trend-bars li[data-partial] i { background: var(--chart-dither); box-shadow: inset 0 0 0 1px var(--chart-3); }
+.trend-tip { position: absolute; bottom: calc(100% + 8px); left: 50%; z-index: 2; padding: 6px 10px; border-radius: 6px; background: var(--ink); color: var(--surface); font-size: .75rem; white-space: nowrap; pointer-events: none; opacity: 0; transform: translate(-50%, 4px); transition: opacity 120ms ease, transform 160ms var(--ease-out); }
+.trend-tip strong { font-variant-numeric: tabular-nums; }
+.trend-bars li:nth-child(-n+3) .trend-tip { left: 0; transform: translate(0, 4px); }
+.trend-bars li:nth-last-child(-n+3) .trend-tip { left: auto; right: 0; transform: translate(0, 4px); }
+@media not ((hover: hover) and (pointer: fine)) { .trend-tip { display: none; } }
+@media (hover: hover) and (pointer: fine) {
+  .trend-bars li:hover i { background: var(--chart-4); }
+  .trend-bars li:hover .trend-tip { opacity: 1; transform: translate(-50%, 0); }
+  .trend-bars li:nth-child(-n+3):hover .trend-tip, .trend-bars li:nth-last-child(-n+3):hover .trend-tip { transform: translate(0, 0); }
+  .report-presets a:not([aria-current]):hover { background: var(--chart-track); color: var(--ink); }
+}
+.trend-axis { display: flex; justify-content: space-between; margin: 8px 0 0 calc(12px + 2ch); color: var(--faint); font-size: .75rem; }
+
+.pipeline-track { display: flex; gap: 3px; height: 14px; overflow: hidden; border-radius: 7px; background: var(--chart-track); }
+.pipeline-track i { min-width: 6px; flex-basis: 0; }
+[data-stage="new"] { background: var(--chart-new); }
+[data-stage="inContact"] { background: var(--chart-contacted); }
+[data-stage="qualified"] { background: var(--chart-2); }
+[data-stage="won"] { background: var(--chart-4); }
+[data-stage="lost"] { background: var(--chart-lost); }
+.pipeline-legend { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin: 20px 0 0; }
+.pipeline-legend > div { display: grid; gap: 4px; min-width: 0; }
+.pipeline-legend dt { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: .75rem; }
+.pipeline-legend dd { display: flex; align-items: baseline; gap: 6px; margin: 0; }
+.pipeline-legend dd strong { font-size: 1.1875rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pipeline-legend dd span { color: var(--faint); font-size: .75rem; font-variant-numeric: tabular-nums; }
+.report-callout { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 20px; padding: 12px 16px; border: 1px solid color-mix(in oklab, var(--danger) 22%, var(--surface)); border-radius: 8px; background: color-mix(in oklab, var(--danger) 5%, var(--surface)); color: var(--danger); font-size: .8125rem; text-decoration: none; transition: background-color 140ms ease; }
+.report-callout:hover { background: color-mix(in oklab, var(--danger) 9%, var(--surface)); }
+
+.cohort-scroll { min-width: 0; overflow-x: auto; }
+.cohort-table, .arrival-table { width: 100%; border-collapse: separate; border-spacing: 4px; font-variant-numeric: tabular-nums; }
+.cohort-table { table-layout: fixed; min-width: 440px; margin: -4px; }
+.cohort-table col:first-child { width: 72px; }
+.cohort-table col:nth-child(2) { width: 84px; }
+.cohort-table th, .arrival-table th { color: var(--muted); font-size: .75rem; font-weight: 550; text-align: left; white-space: nowrap; }
+.cohort-table thead th { padding: 0 8px 4px; }
+.cohort-table thead th:nth-child(n+2) { text-align: center; }
+.cohort-table tbody th { padding-right: 12px; color: var(--ink); font-weight: 500; }
+.cohort-count { color: var(--muted); text-align: center; font-size: .8125rem; }
+.cohort-cell { height: 36px; padding: 0 8px; border-radius: 6px; text-align: center; font-size: .8125rem; font-weight: 550; }
+[data-level="0"] { background: var(--chart-track); color: var(--faint); }
+[data-level="1"] { background: var(--chart-1); color: var(--accent-strong); }
+[data-level="2"] { background: var(--chart-2); color: var(--accent-strong); }
+[data-level="3"] { background: var(--chart-3); color: var(--surface); }
+[data-level="4"] { background: var(--chart-4); color: var(--surface); }
+.arrival-table { table-layout: fixed; min-width: 300px; margin: -4px; }
+.cohort-table abbr, .arrival-table abbr { text-decoration: none; }
+.arrival-note { margin: 12px 0 0; color: var(--faint); font-size: .75rem; }
+.arrival-table thead th { padding-bottom: 2px; font-size: .6875rem; font-weight: 500; text-align: center; color: var(--faint); }
+.arrival-table thead td, .arrival-table tbody th { width: 36px; }
+.arrival-table td { height: 30px; border-radius: 5px; text-align: center; font-size: .6875rem; font-weight: 550; }
+
+.ranked-bars { display: grid; gap: 16px; margin: 0; padding: 0; list-style: none; }
+.ranked-bars li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; }
+.ranked-label { min-width: 0; font-size: .875rem; overflow-wrap: anywhere; }
+.ranked-label .text-link { font-size: .875rem; }
+.ranked-values { display: flex; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
+.ranked-values strong { font-size: .9375rem; font-weight: 600; }
+.ranked-values span { color: var(--faint); font-size: .75rem; }
+.ranked-track { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--chart-track); }
+.ranked-track i { display: block; height: 100%; min-width: 4px; border-radius: 3px; background: var(--chart-3); }
+
+@media (max-width: 900px) {
+  .report-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .report-pair { grid-template-columns: minmax(0, 1fr); }
+  .report-toolbar { align-items: stretch; flex-direction: column; }
+  .report-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .report-filters .field:nth-child(3) { grid-column: 1 / -1; }
+  .report-filters .button { justify-self: start; }
+}
+@media (max-width: 620px) {
+  .report-presets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .report-presets a { justify-content: center; padding: 0 4px; }
+  .report-kpis { gap: 8px; }
+  .kpi-card { padding: 16px; }
+  .kpi-card strong { font-size: 1.5rem; }
+  .report-card { padding: 20px 16px; }
+  .pipeline-legend { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .trend-bars, .trend-scale { height: 140px; }
+  .trend-bars { gap: 2px; }
+  .cohort-table { min-width: 0; }
+  .cohort-table col:first-child { width: 52px; }
+  .cohort-table col:nth-child(2) { width: 36px; }
+  .cohort-table thead th { padding: 0 2px 4px; white-space: normal; line-height: 1.3; }
+  .cohort-cell { padding: 0 2px; font-size: .75rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trend-tip, .trend-bars i, .report-presets a, .report-callout { transition: none; }
+}
+
+/* Workspace consistency: shared card surface for page sections, unnumbered settings, chart-toned weekly bars. */
+.section-heading:not(:has(.step)) { grid-template-columns: minmax(0, 1fr); }
+.client-create-section { margin-bottom: 24px; padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.client-create-section h2 { font-size: 1.0625rem; font-weight: 650; margin: 0 0 16px; }
+.client-list { padding-top: 0; }
+.weekly-bar-value { color: var(--muted); }
+.weekly-bar-track { border-bottom-color: var(--line-strong); background: var(--chart-track); }
+.weekly-bar-track i { background: var(--chart-2); }
+.weekly-bars li:last-child i { background: var(--chart-4); }
+.weekly-bars[data-live] li:last-child i { background: var(--chart-dither); box-shadow: inset 0 0 0 1px var(--chart-3); }

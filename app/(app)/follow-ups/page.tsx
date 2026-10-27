@@ -41,7 +41,7 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
     days.get(date)!.push(row);
   }
   return <div className="page follow-up-page">
-    <PageHeader eyebrow={organization.name} title="Follow-ups" description={`${agenda.total.toLocaleString()} ${agenda.total === 1 ? "enquiry" : "enquiries"} scheduled`} action={<Button asChild variant="outline"><Link className="button button-secondary" href="/submissions"><Inbox size={16} aria-hidden />Inbox</Link></Button>} />
+    <PageHeader title="Follow-ups" description={`${agenda.total.toLocaleString()} ${agenda.total === 1 ? "enquiry" : "enquiries"} scheduled`} action={<Button asChild variant="outline"><Link className="button button-secondary" href="/submissions"><Inbox size={16} aria-hidden />Inbox</Link></Button>} />
     <nav className="segmented follow-up-periods" aria-label="Follow-up period">{FOLLOW_UP_PERIODS.map(period => <Link key={period} href={followUpLink(filters, { period })} aria-current={filters.period === period ? "page" : undefined}>{periodLabels[period]}<span>{agenda.counts[period].toLocaleString()}</span></Link>)}</nav>
     <form key={JSON.stringify(filters)} className="follow-up-filters" method="get">
       <input name="period" type="hidden" value={filters.period} />

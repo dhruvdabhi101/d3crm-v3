@@ -38,7 +38,7 @@ export default async function DashboardPage() {
     db.submission.findMany({ where: { ...scheduled, followUpAt: { not: null } }, select: { id: true, data: true, followUpAt: true, form: { select: { name: true } } }, orderBy: [{ followUpAt: "asc" }, { id: "asc" }], take: 5 }),
   ]);
   return <div className="page overview-page">
-    <PageHeader eyebrow={organization.name} title="Overview" description="Your next steps, before the numbers. Follow-up dates use UTC." action={canAdmin ? <Button asChild variant="outline"><Link className="button button-secondary" href="/forms/new"><Plus size={16} />Create form</Link></Button> : undefined} />
+    <PageHeader title="Overview" description="What needs you today, then how the week is going. Follow-up dates use UTC." action={canAdmin ? <Button asChild variant="outline"><Link className="button button-secondary" href="/forms/new"><Plus size={16} />Create form</Link></Button> : undefined} />
     <section className="stats-grid daily-priorities" aria-label="Your priorities">
       <Link className="stat-card" data-attention={overdue > 0} href="/follow-ups?period=overdue"><p><Clock size={16} />Overdue <ArrowUpRight size={14} /></p><strong>{overdue.toLocaleString()}</strong><small>{overdue ? "Pick up where you left off" : "No overdue follow-ups"}</small></Link>
       <Link className="stat-card" href="/follow-ups?period=today"><p><CalendarDays size={16} />Due today <ArrowUpRight size={14} /></p><strong>{today.toLocaleString()}</strong><small>{today ? "Keep the conversation moving" : "Nothing scheduled today"}</small></Link>
