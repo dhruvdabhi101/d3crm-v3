@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 
 import { startTransition, useActionState } from "react";
 import { addMember, inviteMember, removeMember, transferOwnership, updateOrganization } from "@/lib/actions/organization";
-import { Mail, UserMinus } from "lucide-react";
+import { Mail, Plus, UserMinus } from "lucide-react";
 
 function Result({ error, success }: { error?: string; success?: string }) {
   if (error) return <Alert variant="destructive" className="form-error" role="alert"><AlertDescription>{error}</AlertDescription></Alert>;
@@ -35,7 +35,27 @@ export function OrganizationNameForm({ name, canAdmin }: { name: string; canAdmi
 
 export function AddMemberForm() {
   const [state, action, pending] = useActionState(addMember, {});
-  return <form action={action} className="invite-form"><Label className="field"><span>Existing user email</span><Input name="email" type="email" placeholder="teammate@company.com" required /></Label><Label className="field"><span>Role</span><NativeSelect aria-label="Role" name="role" defaultValue="VIEWER"><NativeSelectOption value="VIEWER">Viewer</NativeSelectOption><NativeSelectOption value="MEMBER">Member</NativeSelectOption><NativeSelectOption value="ADMIN">Admin</NativeSelectOption></NativeSelect></Label><Button variant="outline" className="button button-secondary" disabled={pending}>{pending ? "Saving…" : "Add member"}</Button><Result {...state} /></form>;
+  return (
+    <form action={action} className="invite-form">
+      <Label className="field">
+        <span>Existing user email</span>
+        <Input name="email" type="email" placeholder="teammate@company.com" required />
+      </Label>
+      <Label className="field">
+        <span>Role</span>
+        <NativeSelect aria-label="Role" name="role" defaultValue="VIEWER">
+          <NativeSelectOption value="VIEWER">Viewer</NativeSelectOption>
+          <NativeSelectOption value="MEMBER">Member</NativeSelectOption>
+          <NativeSelectOption value="ADMIN">Admin</NativeSelectOption>
+        </NativeSelect>
+      </Label>
+      <Button className="button button-raised" disabled={pending} aria-busy={pending}>
+        <Plus size={16} aria-hidden />
+        {pending ? "Adding…" : "Add team member"}
+      </Button>
+      <Result {...state} />
+    </form>
+  );
 }
 
 export function TransferOwnershipForm({ members }: { members: { id: string; name: string; email: string }[] }) {
