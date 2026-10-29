@@ -101,7 +101,7 @@ There are three files, loaded in this order by `app/layout.tsx`:
 - **Multi-step flows** follow the setup-guide pattern (`components/integration-wizard.tsx`): a step rail with `aria-current="step"`, one panel at a time, Back and Continue in a footer, and a "Step N of M" live region on mobile.
 - **Choices**: use native radio, checkbox, or select inputs (styled), not `div`s with click handlers.
 - **Dates**: follow-ups and connection times are shown in **UTC** and labelled "UTC".
-- **Copy**: write short sentences in the second person ("your website"). Name what happens next. Error messages say what went wrong and how to fix it. No eyebrow-label clutter, and no marketing filler inside the workspace.
+- **Copy**: write short sentences in the second person ("your website"). Name what happens next. Error messages say what went wrong and how to fix it. No eyebrow-label clutter, and no marketing filler inside the workspace. Titles stand alone by default; add supporting text only when it supplies a decision, constraint, consequence, or next action that the controls do not explain. Keep counts, dates, field instructions, error recovery, and consent text.
 
 ## AI handoff prompts
 

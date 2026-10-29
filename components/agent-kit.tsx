@@ -14,11 +14,11 @@ const agentTasks = [
 export function AgentKit({ name, endpoint, schema, formKey, origins }: { name: string; endpoint: string; schema: FormSchema; formKey?: string; origins: string[] }) {
   const prompt = buildIntegrationPrompt({ name, endpoint, schema, key: formKey, origins });
   return <div className="handoff">
-    <div className="handoff-copy">
-      <h3>What your agent will do</h3>
+    <details className="handoff-copy">
+      <summary>What’s in the prompt</summary>
       <ul className="handoff-tasks">{agentTasks.map(task => <li key={task}><Check size={15} aria-hidden="true" />{task}</li>)}</ul>
-      <p className="handoff-tools">Use an assistant that can edit your website&apos;s code: Claude Code, Cursor, Codex, Lovable, Bolt, or Replit.</p>
-    </div>
+      <p className="handoff-tools">Use a coding assistant with access to your website project.</p>
+    </details>
     <div className="handoff-actions">
       <CopyButton primary value={prompt} label="Copy prompt" />
       <CopyButton value={JSON.stringify({ name, schema }, null, 2)} label="Copy form JSON" />

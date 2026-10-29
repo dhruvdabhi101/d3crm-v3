@@ -56,10 +56,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="page reports-page">
-      <PageHeader
-        title="Reports"
-        description="How many enquiries you get, where they come from, and how quickly you reply. All dates and times are in UTC."
-      />
+      <PageHeader title="Reports" />
 
       <section className="report-toolbar" aria-label="Report period">
         <nav className="report-presets" aria-label="Quick periods">
@@ -75,11 +72,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         </nav>
         <form className="report-filters" method="get">
           <Label className="field">
-            <span>From</span>
+            <span>From (UTC)</span>
             <Input name="from" type="date" defaultValue={get("from") || range?.from} required />
           </Label>
           <Label className="field">
-            <span>To</span>
+            <span>To (UTC)</span>
             <Input name="to" type="date" defaultValue={get("to") || range?.to} required />
           </Label>
           <Label className="field">
@@ -98,7 +95,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       {report && trends && range && (total === 0 && trends.previous.total === 0 ? (
         <EmptyState
           title="No enquiries in this period"
-          description="Once your website forms start receiving enquiries, this page shows how many arrive, where they come from, and how quickly you reply."
+          description="Choose another period or connect a website form."
           action={<Button asChild variant="outline"><Link className="button button-secondary" href="/forms">Go to forms</Link></Button>}
         />
       ) : <>
@@ -136,8 +133,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <div className="report-pair">
           <section className="report-card">
             <header className="report-card-head">
-              <h2>Where they stand now</h2>
-              <p>Current status of this period&apos;s enquiries.</p>
+              <h2>Current status</h2>
             </header>
             <PipelineBar counts={{ new: report.totals.new, inContact: report.totals.inContact, qualified: report.totals.qualified, won: report.totals.won, lost: report.totals.lost }} />
             {report.totals.overdue > 0 && (
@@ -150,7 +146,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           <section className="report-card">
             <header className="report-card-head">
               <h2>When enquiries arrive</h2>
-              <p>{busiest ? <>Busiest: <strong>{busiest}</strong>. Be ready to reply then.</> : "No enquiries yet."}</p>
+              <p>{busiest ? <>Busiest: <strong>{busiest}</strong></> : "No enquiries yet."}</p>
             </header>
             <ArrivalHeatmap grid={trends.arrivals} />
           </section>
@@ -159,7 +155,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <section className="report-card">
           <header className="report-card-head">
             <h2>How quickly you reply</h2>
-            <p>Each row is a week of enquiries. The cells show how many you first contacted within an hour, within a day, at all, and how many you won. Darker means more.</p>
+            <p>Grouped by week received. Darker cells mean more enquiries.</p>
           </header>
           {trends.cohorts.length
             ? <ResponseCohorts cohorts={trends.cohorts} />
@@ -170,7 +166,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           <section className="report-card">
             <header className="report-card-head">
               <h2>By form</h2>
-              <p>Open a form to see its enquiries.</p>
             </header>
             <RankedBars
               empty="No enquiries in this period."
@@ -185,7 +180,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           <section className="report-card">
             <header className="report-card-head">
               <h2>By source</h2>
-              <p>From campaign links (utm_source), or the website the form is on.</p>
+              <p>Campaign source or website origin.</p>
             </header>
             <RankedBars
               empty="No sources in this period."

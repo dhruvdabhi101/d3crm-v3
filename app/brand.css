@@ -1073,3 +1073,19 @@ kbd { font-family: inherit; border: 1px solid var(--line); border-radius: 4px; p
   .button-raised { transition: none; }
   .button-raised:active:not(:disabled) { transform: none; }
 }
+
+/* Hallmark · copy cleanup: P4 H5 E4 S5 R5 V4. Keep headings clear and supporting text purposeful. */
+.heading-meta { margin-left: 8px; color: var(--muted); font-size: .75rem; font-weight: 400; }
+.desk-preview-footer { justify-content: flex-end; }
+.builder-footer > .button:only-child { margin-left: auto; }
+.stats-grid .stat-card { min-height: 112px; }
+.daily-priorities .stat-card p { justify-content: flex-start; }
+@media (max-width: 900px) {
+  .daily-priorities .stat-card { min-height: 72px; grid-template-rows: auto; align-items: center; }
+  .daily-priorities .stat-card strong { grid-row: 1; }
+}
+.handoff-copy { display: block; }
+.handoff-copy summary { cursor: pointer; font-size: .875rem; font-weight: 600; }
+.handoff-copy[open] .handoff-tasks { margin-top: 16px; }
+.handoff-copy[open] .handoff-tools { margin-top: 12px; }
+.handoff-copy summary:hover, .handoff-copy summary:active { color: var(--accent-strong); }

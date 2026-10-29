@@ -19,9 +19,9 @@ import type { FormSchema } from "@/lib/forms/types";
 type Route = "agent" | "snippet" | "developer";
 
 const routes: { value: Route; Icon: typeof Bot; title: string; description: string; tag?: string }[] = [
-  { value: "agent", Icon: Bot, title: "Ask your AI coding agent", description: "Copy one prompt into Claude Code, Cursor, Lovable, or similar. It builds the form in your site's style.", tag: "Recommended" },
-  { value: "snippet", Icon: Code2, title: "Paste a ready-made form", description: "Copy HTML into any site builder that accepts custom code, such as WordPress, Webflow, or Squarespace." },
-  { value: "developer", Icon: UserRound, title: "Send it to a developer", description: "Share the endpoint, fields, and a brief with whoever looks after your website." },
+  { value: "agent", Icon: Bot, title: "Ask your AI coding agent", description: "For a coding assistant with access to your website project.", tag: "Recommended" },
+  { value: "snippet", Icon: Code2, title: "Paste a ready-made form", description: "For site builders that support custom HTML and JavaScript." },
+  { value: "developer", Icon: UserRound, title: "Send it to a developer", description: "For someone else who manages your website." },
 ];
 
 const steps = ["Choose how", "Key and website", "Add it to your site", "Check it works"];
@@ -73,7 +73,7 @@ export function IntegrationWizard({ id, name, endpoint, schema, origins, keyPref
 
     <div className="guide-panel">
       {step === 0 && <>
-        <header className="guide-head"><h2>How would you like to add the form?</h2><p>All three routes send enquiries to the same place. Pick the one that matches how your website gets changed.</p></header>
+        <header className="guide-head"><h2>How would you like to add the form?</h2></header>
         <fieldset className="route-options">
           <legend className="sr-only">Setup route</legend>
           {routes.map(({ value, Icon, title, description, tag }) => <label key={value} className="route-option">
@@ -87,18 +87,18 @@ export function IntegrationWizard({ id, name, endpoint, schema, origins, keyPref
       </>}
 
       {step === 1 && <>
-        <header className="guide-head"><h2>Add your key and website</h2><p>The key tells d3CRM which form an enquiry belongs to. The website address lets us check that requests from your site are accepted.</p></header>
+        <header className="guide-head"><h2>Add your key and website</h2><p>Use your form key and the address of the website you want to connect.</p></header>
         <div className="guide-fields">
           <Label className="field"><span>Publishable key</span><Input type="password" autoComplete="off" value={key} maxLength={128} placeholder={`${keyPrefix}…`} aria-describedby="key-help" onChange={event => { setKey(event.target.value); setResult({}); }} /><small id="key-help">{initialKey ? "Filled in from the form you just created. Keys are shown only once, so save it somewhere safe." : <>Starts with <code>{keyPrefix}</code>. Keys are only shown when created. Lost it? <Link className="text-link" href={`/forms/${id}#api-key`}>Create a new key</Link>; the old one stops working.</>}</small></Label>
           <Label className="field"><span>Your website address</span><Input type="url" value={origin} maxLength={2048} placeholder="https://yourbusiness.com" aria-describedby="origin-help" onChange={event => { setOrigin(event.target.value); setResult({}); }} /><small id="origin-help">{origins.length ? `This form only accepts: ${origins.join(", ")}.` : "Just the address, with no page path. This form accepts any website for now."}</small></Label>
         </div>
-        <p className="guide-aside">You can skip this and come back later. Your agent or developer will ask for the key if it&apos;s missing.</p>
+        <p className="guide-aside">You can add the key later.</p>
         {footer("next")}
       </>}
 
       {step === 2 && <>
         {route === "agent" && <>
-          <header className="guide-head"><h2>Hand it to your AI agent</h2><p>Open your website project in your coding assistant, paste the prompt, and let it do the work. Review the changes it suggests before you publish.</p></header>
+          <header className="guide-head"><h2>Hand it to your AI agent</h2><p>Paste the prompt into your website&apos;s coding assistant. Review its changes before publishing.</p></header>
           <AgentKit name={name} endpoint={endpoint} schema={schema} formKey={trimmedKey || undefined} origins={origins} />
         </>}
         {route === "snippet" && <>
@@ -116,7 +116,7 @@ export function IntegrationWizard({ id, name, endpoint, schema, origins, keyPref
           {test && <p className="guide-aside">Once the test message appears on your site, switch to Live, copy the code again, and replace the test version.</p>}
         </>}
         {route === "developer" && <>
-          <header className="guide-head"><h2>Send this to your developer</h2><p>Copy the brief and share it. It has everything they need: the endpoint, your fields, error handling, and spam protection.</p></header>
+          <header className="guide-head"><h2>Send this to your developer</h2><p>Share this brief with your developer.</p></header>
           <div className="handoff-actions"><CopyButton primary value={buildIntegrationPrompt({ name, endpoint, schema, key: trimmedKey || undefined, origins })} label="Copy developer brief" /><CopyButton value={endpoint} label="Copy endpoint" /></div>
           <div className="endpoint-row"><span>POST</span><code>{endpoint}</code></div>
           <dl className="field-contract">{schema.fields.map(field => <div key={field.id}><dt><code>{field.id}</code></dt><dd>{field.type}</dd><dd>{field.required ? "required" : "optional"}</dd></div>)}</dl>
@@ -126,7 +126,7 @@ export function IntegrationWizard({ id, name, endpoint, schema, origins, keyPref
       </>}
 
       {step === 3 && <>
-        <header className="guide-head"><h2>Check it works</h2><p>Run a quick check from here, then send one real enquiry from your website. It will show up in your inbox within seconds.</p></header>
+        <header className="guide-head"><h2>Check it works</h2><p>Check the endpoint, then submit your website form to confirm the enquiry reaches your inbox.</p></header>
         <ul className="check-list">
           <li data-ok={Boolean(verifiedAt) || undefined}><span className="check-state" aria-hidden="true">{verifiedAt ? <Check size={14} strokeWidth={2.5} /> : <CircleDashed size={14} />}</span><span><strong>Key and website accepted</strong><small>{verifiedAt ? `Checked ${utc(verifiedAt)}` : "Not checked yet"}</small></span></li>
           <li data-ok={Boolean(latestAt) || undefined}><span className="check-state" aria-hidden="true">{latestAt ? <Check size={14} strokeWidth={2.5} /> : <CircleDashed size={14} />}</span><span><strong>First enquiry received</strong><small>{latestAt ? `Latest ${utc(latestAt)}` : "Waiting for a submission from your site"}</small></span></li>

@@ -49,10 +49,8 @@ const sculpture = createSculpture();
 
 export function AsciiSculpture() {
   return <div className="ascii-art" aria-hidden="true">
-    <div className="ascii-art-label"><span>FIG. 01</span><span>CONNECTED BY DESIGN</span><span>+</span></div>
     <svg className="ascii-sculpture" viewBox="0 0 672 604" fill="none" focusable="false">
       <g fontFamily="monospace" fontSize="10" style={{ whiteSpace: "pre" }}>{sculpture}</g>
     </svg>
-    <div className="ascii-art-label ascii-art-bottom"><span>+ EVERY CONNECTION COUNTS</span><span>FORM → FOLLOW-THROUGH</span></div>
   </div>;
 }

@@ -9,5 +9,5 @@ export default async function NewFormPage({ searchParams }: { searchParams: Prom
   const { mode } = await searchParams;
   await requireRole(Role.ADMIN);
   const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-  return <div className="page page-builder"><Link className="back-link" href="/forms"><ArrowLeft size={15} />Forms</Link><PageHeader title="Create a form" description="A few good questions. A new conversation." /><FormBuilder key={mode ?? "manual"} baseUrl={baseUrl} initialMode={mode === "ai" ? "ai" : "manual"} /></div>;
+  return <div className="page page-builder"><Link className="back-link" href="/forms"><ArrowLeft size={15} />Forms</Link><PageHeader title="Create a form" /><FormBuilder key={mode ?? "manual"} baseUrl={baseUrl} initialMode={mode === "ai" ? "ai" : "manual"} /></div>;
 }
