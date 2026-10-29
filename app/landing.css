@@ -10,9 +10,6 @@
   color: var(--ink);
 }
 .ascii-landing .site-header { max-width: 1360px; min-height: 96px; }
-.ascii-landing [data-slot="button"][data-variant="default"] { background: #292822; color: #fffdf7; box-shadow: none; }
-.ascii-landing [data-slot="button"][data-variant="outline"] { background: transparent; border-color: var(--line-strong); box-shadow: none; }
-.ascii-landing .site-account > [data-slot="button"] { border-radius: 4px; }
 .ascii-landing .product-hero { max-width: 1360px; grid-template-columns: 1fr 1.05fr; gap: 28px; padding: 64px 48px 72px; }
 .ascii-landing .hero-copy .eyebrow { font-family: monospace; font-size: .65rem; letter-spacing: .09em; color: var(--muted); margin-bottom: 30px; }
 .ascii-landing .editorial-mark { border: 0; border-radius: 0; color: var(--accent); width: auto; font-size: 1.2rem; }
@@ -20,7 +17,7 @@
 .ascii-landing .hero-copy h1 > span { color: var(--accent); margin: 0; }
 .ascii-landing .hero-description { max-width: 390px; margin: 28px 0; font-size: 1rem; line-height: 1.8; }
 .ascii-landing .hero-actions { gap: 12px; }
-.ascii-landing .hero-actions [data-slot="button"] { min-height: 48px; padding: 0 20px; border-radius: 4px; font-size: .8rem; }
+.ascii-landing .hero-actions [data-slot="button"] { min-height: 48px; padding: 0 20px; font-size: .8rem; }
 .ascii-landing .hero-footnote { font-size: .73rem; margin: 22px 0 0; }
 .ascii-art { align-self: stretch; display: flex; flex-direction: column; justify-content: center; min-width: 0; position: relative; background-image: radial-gradient(#cfc2b066 .7px, transparent .7px); background-size: 18px 18px; }
 .ascii-sculpture { display: block; width: 100%; height: auto; }
@@ -46,10 +43,6 @@
 .ascii-landing .site-final .eyebrow { color: var(--muted); }
 .ascii-landing .site-final h2 { font-size: clamp(2.5rem, 5vw, 4.5rem); }
 .ascii-landing .site-footer { background: #f8f5ee; border-color: var(--line); }
-@media (hover: hover) {
-  .ascii-landing [data-slot="button"][data-variant="default"]:hover { background: #48453c; }
-  .ascii-landing [data-slot="button"][data-variant="outline"]:hover { background: #eee7da; }
-}
 @media (max-width: 1360px) { .landing-index { margin-right: 48px; margin-left: 48px; } }
 @media (max-width: 1000px) {
   .ascii-landing .product-hero { gap: 20px; padding: 48px 32px 60px; }

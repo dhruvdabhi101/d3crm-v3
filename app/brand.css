@@ -1007,24 +1007,49 @@ kbd { font-family: inherit; border: 1px solid var(--line); border-radius: 4px; p
 .weekly-bars li:last-child i { background: var(--chart-4); }
 .weekly-bars[data-live] li:last-child i { background: var(--chart-dither); box-shadow: inset 0 0 0 1px var(--chart-3); }
 
-/* Raised action button: blue face, gradient edge, inset light, and outer rim. */
+/* Raised action buttons: shared depth, with colours from each semantic variant. */
 :root {
-  --raised-fill: #296ff0;
-  --raised-hover: #2464d8;
-  --raised-pressed: #205bc7;
-  --raised-label: #fff;
   --raised-edge: rgb(255 255 255 / 40%);
   --raised-edge-end: rgb(255 255 255 / 0%);
   --raised-highlight: rgb(255 255 255 / 24%);
   --raised-shadow: rgb(0 0 0 / 20%);
+  --raised-neutral-shadow: rgb(0 0 0 / 10%);
+  --raised-label: #fff;
 }
-.button-raised[data-slot="button"] {
+.button-raised {
+  --raised-fill: var(--accent);
+  --raised-hover: var(--accent-strong);
+  --raised-rim: var(--raised-face);
+  --raised-ink: var(--raised-label);
+  --raised-drop: var(--raised-shadow);
+}
+.button-raised[data-variant="destructive"] {
+  --raised-fill: var(--danger);
+  --raised-hover: color-mix(in srgb, var(--danger), var(--ink) 15%);
+}
+.button-raised:is([data-variant="outline"], [data-variant="secondary"]) {
+  --raised-fill: var(--surface);
+  --raised-hover: var(--accent-soft);
+  --raised-rim: var(--line-strong);
+  --raised-ink: var(--ink);
+  --raised-drop: var(--raised-neutral-shadow);
+}
+.button-raised[data-variant="secondary"] { --raised-fill: var(--accent-soft); }
+.site-final .button-raised {
+  --raised-fill: var(--accent-soft);
+  --raised-hover: var(--surface);
+  --raised-ink: var(--ink);
+}
+.ascii-landing .button-raised[data-variant="default"] {
+  --raised-fill: var(--ink);
+  --raised-hover: color-mix(in srgb, var(--ink), var(--surface) 12%);
+  --raised-ink: var(--raised-label);
+}
+.button-raised:is([data-variant="default"], [data-variant="outline"], [data-variant="secondary"], [data-variant="destructive"]) {
   --raised-face: var(--raised-fill);
-  min-height: 40px;
-  padding: 0 16px;
   border: 1px solid transparent;
   border-radius: 12px;
-  color: var(--raised-label);
+  color: var(--raised-ink);
   background-color: var(--raised-face);
   background-image:
     linear-gradient(var(--raised-face), var(--raised-face)),
@@ -1033,20 +1058,18 @@ kbd { font-family: inherit; border: 1px solid var(--line); border-radius: 4px; p
   background-clip: padding-box, border-box;
   box-shadow:
     inset 0 0 6px 2px var(--raised-highlight),
-    0 0 0 1px var(--raised-face),
-    0 3px 6px var(--raised-shadow);
-  transition: transform 140ms var(--ease-out), opacity 140ms var(--ease-out);
+    0 0 0 1px var(--raised-rim),
+    0 3px 6px var(--raised-drop);
+  transition: transform 140ms var(--ease-out), opacity 140ms var(--ease-out), color 140ms var(--ease-out);
 }
+.button-raised:is([data-size="xs"], [data-size="sm"], [data-size="icon-xs"], [data-size="icon-sm"]) { border-radius: 8px; }
 @media (hover: hover) {
-  .button-raised[data-slot="button"]:hover:not(:disabled) { --raised-face: var(--raised-hover); }
+  .button-raised:hover:not(:disabled):not([aria-disabled="true"]) { --raised-face: var(--raised-hover); }
 }
-.button-raised[data-slot="button"]:focus-visible { outline: 2px solid var(--raised-fill); outline-offset: 4px; }
-.button-raised[data-slot="button"]:active:not(:disabled) { --raised-face: var(--raised-pressed); transform: translateY(1px); }
-.button-raised[data-slot="button"]:disabled { opacity: .6; transform: none; }
-@media (max-width: 620px) {
-  .button-raised[data-slot="button"] { min-height: 44px; }
-}
+.button-raised:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.button-raised:active:not(:disabled):not([aria-disabled="true"]) { --raised-face: var(--raised-hover); transform: translateY(1px); }
+.button-raised:is(:disabled, [aria-disabled="true"]) { opacity: .6; transform: none; }
 @media (prefers-reduced-motion: reduce) {
-  .button-raised[data-slot="button"] { transition: none; }
-  .button-raised[data-slot="button"]:active:not(:disabled) { transform: none; }
+  .button-raised { transition: none; }
+  .button-raised:active:not(:disabled) { transform: none; }
 }

@@ -1,13 +1,13 @@
 ---
 name: special-design-components
-description: Build raised blue action buttons with a luminous inner edge and layered shadows, matching the supplied special component reference. Use for this button treatment or requests for a tactile, glossy primary button.
+description: Build tactile action buttons with a luminous inner edge and layered shadows, adapting their colour to the app theme and semantic variant. Use for the saved raised button treatment or themed primary, secondary, and destructive buttons.
 ---
 
 # Special design components
 
-This skill currently contains one recipe: the rounded blue “Add team member” button. Add other component recipes only when requested.
+This skill contains one recipe: the rounded, raised action button from the “Add team member” reference, applied throughout the app in theme colours. Add other component recipes only when requested.
 
-## Raised blue button
+## Raised button
 
 The reference uses a solid blue face, white label and plus icon, a fine white gradient edge, a soft white inset highlight, and a blue outer rim above a black drop shadow. The luminous edge supplies the depth; avoid a dramatic face gradient or continuous glow animation.
 
@@ -21,6 +21,8 @@ Reference values (CSS pixels, before adapting the control's size):
 | Drop shadow | `0 3px 6px rgb(0 0 0 / 20%)` |
 | Inner highlight | `inset 0 0 6px 2px rgb(255 255 255 / 24%)` |
 | Outer rim | `0 0 0 1px #296FF0` |
+
+Treat blue as the reference colour, not a requirement for every button. Use the app accent for primary actions, a light theme surface and dark label for outline/secondary actions, and the danger colour for destructive actions. Keep ghost and link variants lightweight so inline links, row controls, and navigation retain their intended hierarchy.
 
 Build it with the app's existing button primitive and a reusable semantic class. A transparent 1px border plus two background layers creates the inside gradient stroke without extra DOM. Keep the blue `background-color` behind both layers so the transparent end of the stroke stays blue. Put the inset highlight first in `box-shadow`, then the blue rim, then the drop shadow.
 
@@ -54,8 +56,9 @@ Provide hover, keyboard focus, pressed, pending, and disabled states. A slightly
 
 ## In d3CRM
 
-- Reuse `Button` from `components/ui/button.tsx` with `className="button button-raised"`; no new wrapper or dependency is needed.
-- The maintained implementation and interaction states live in the “Raised action button” block at the end of `app/brand.css`. Reuse those rules instead of duplicating the snippet.
-- The existing usage is `AddMemberForm` in `components/organization-settings-forms.tsx`, visible to workspace owners in Settings.
-- Use selectively for a prominent action. Preserve the existing hierarchy of secondary and destructive actions.
-- Check the actual screen at desktop and 320, 375, 414, and 768px widths, plus keyboard focus, disabled, and reduced-motion states. Ensure the outer shadow is not clipped.
+- `Button` in `components/ui/button.tsx` includes `button-raised` automatically. Use the existing `variant` and `size` props; do not add a new wrapper or manually opt each caller in.
+- The maintained implementation and interaction states live in the “Raised action buttons” block at the end of `app/brand.css`. Reuse those rules instead of duplicating the snippet.
+- Primary buttons use `--accent` / `--accent-strong`; destructive buttons use `--danger`; outline and secondary buttons use `--surface`, `--accent-soft`, `--line-strong`, and `--ink`. The final marketing section uses a light face against its dark background; the ASCII homepage instead uses its existing charcoal primary colour throughout.
+- Apply depth to default, outline, secondary, and destructive variants, including buttons rendered as links and confirmation dialog actions. Preserve ghost/link variants used for inline text, lists, navigation, and icon controls. Do not apply raised styling to every native `button` indiscriminately.
+- Preserve the primitive's existing sizes and responsive touch targets. Smaller buttons use an 8px radius; normal action buttons use 12px.
+- Check public, authentication, and workspace screens at desktop and 320, 375, 414, and 768px widths, plus keyboard focus, disabled, and reduced-motion states. Ensure the outer shadow is not clipped.

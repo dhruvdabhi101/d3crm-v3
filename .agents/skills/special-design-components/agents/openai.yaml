@@ -1,4 +1,4 @@
 interface:
   display_name: "Special Design Components"
-  short_description: "Build tactile blue buttons with layered highlights"
-  default_prompt: "Use $special-design-components to build a raised blue action button matching the saved reference recipe."
+  short_description: "Build themed buttons with layered highlights"
+  default_prompt: "Use $special-design-components to build raised action buttons using the app theme and saved reference recipe."

@@ -49,7 +49,7 @@ export function AddMemberForm() {
           <NativeSelectOption value="ADMIN">Admin</NativeSelectOption>
         </NativeSelect>
       </Label>
-      <Button className="button button-raised" disabled={pending} aria-busy={pending}>
+      <Button className="button button-primary" disabled={pending} aria-busy={pending}>
         <Plus size={16} aria-hidden />
         {pending ? "Adding…" : "Add team member"}
       </Button>
